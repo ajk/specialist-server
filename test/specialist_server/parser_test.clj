@@ -3,7 +3,8 @@
             [specialist-server.parser :as p]))
 
 (def query
-"query IntrospectionQuery {
+"# this is a comment...
+  query IntrospectionQuery { # ...and this
     __schema {
       queryType { name }
       mutationType { name }
