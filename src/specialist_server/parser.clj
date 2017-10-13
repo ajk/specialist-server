@@ -8,9 +8,7 @@
             [specialist-server.type :as t]))
 
 
-(def ^:private graphql (antlr/parser (slurp (io/resource "grammar/GraphQL.g4"))))
-
-(graphql "{__type(name:\"hello\") { fields { name }}}")
+(def graphql (antlr/parser (slurp (io/resource "grammar/GraphQL.g4"))))
 
 ;;;
 
