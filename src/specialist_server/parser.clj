@@ -50,18 +50,16 @@
     (if (= c-args ::spec/invalid)
       (throw (ex-info (str "failed to conform arguments for " fun-var) (spec/explain-data (:args fspec) (vec args))))
       (let [res (apply (deref fun-var) c-args)]
-        ;; return a function now and resolve later so batch-loader has a change to collect more ids
-        (fn []
-          (let [res (if (fn? res) (res) res)
-                c-res (spec/conform (or (:ret fspec) (croak)) res)]
-            (if (= c-res ::spec/invalid)
-              (do
-                (println (spec/explain (:ret fspec) res)) ;DEBUG
-                (throw (ex-info (str "failed to conform return value for " fun-var) (spec/explain-data (:ret fspec) res))))
-              (if (and scalar? (or (map? c-res) (and (coll? c-res) (-> c-res first map?))))
-                ;; the resolver returned a map but we expected a scalar value
-                (throw (IllegalArgumentException. "invalid query: missing selection set")) ;TODO dig up field name
-                c-res))))))))
+        (let [res (if (fn? res) (res) res)
+              c-res (spec/conform (or (:ret fspec) (croak)) res)]
+          (if (= c-res ::spec/invalid)
+            (do
+              (println (spec/explain (:ret fspec) res)) ;DEBUG
+              (throw (ex-info (str "failed to conform return value for " fun-var) (spec/explain-data (:ret fspec) res))))
+            (if (and scalar? (or (map? c-res) (and (coll? c-res) (-> c-res first map?))))
+              ;; the resolver returned a map but we expected a scalar value
+              (throw (IllegalArgumentException. "invalid query: missing selection set")) ;TODO dig up field name
+              c-res)))))))
 
 (defn- resolve-field [scalar? field-val-or-var arg-map root-val context info]
   (if-not (var? field-val-or-var) ;regular value or resolver var
