@@ -17,6 +17,6 @@
     (fn [{:keys [query variables root context]}]
       (let [info {:schema schema
                   :type-map type-map
-                  :variable-values (or variables {})
+                  :variable-values (reduce-kv (fn [m k v] (assoc m (keyword k) v )) {} variables)
                   :root-value (or root {})}]
         (execute query inner-schema (or context {}) info)))))

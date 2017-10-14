@@ -12,16 +12,60 @@
 
 ;;;
 
+(def graphql-0 (antlr/parser (slurp (io/resource "grammar/GraphQL0.g4"))))
+(def graphql-1 (antlr/parser (slurp (io/resource "grammar/GraphQL1.g4"))))
+
+(defn- apply-ops-0 [v]
+  (if (seq? v)
+    (cond
+      (= :selectionSet (first v))        (apply str (interpose " " (rest v)))
+      (= :variableDefinitions (first v)) (apply str (rest v))
+      :else v)
+    v))
+
+(defn- apply-ops-1 [[_ & defs]]
+  `(:document
+     ~@(map (fn [[_ xs]]
+              `(:definition
+                 ~(map (fn [x] (if (and (string? x) (re-find #"^\(|^\{" x)) (-> x graphql-1 last) x)) xs)
+                 #_(~@(drop-last v) ~(-> v last graphql-1))))
+            defs)))
+
+(defn graphql-two-step
+  "ANTLR graphql parser croaks if reserved words are used in selectionSet or variableDefinition:
+     'query', 'mutation', 'subscription', 'fragment', 'on'
+
+  As a workaround we can split parsing into two steps. The downside is that this is slower.
+  So we try to parse queries in single pass first and if it fails we fall back to this."
+  [q-str]
+  (->> q-str graphql-0 (walk/postwalk apply-ops-0) apply-ops-1))
+
+;;;
+
+;(:defaultValue "=" (:value "\"query string\"")))
+(defn- default-value [_ v]
+  v)
+
+(defn- variable-def
+  ([v-name _ v-type] (variable-def v-name ":" v-type nil))
+  ([v-name _ v-type v-default]
+   {v-name {:type v-type :default v-default}}))
+
+;(:variableDefinitions "(" (:variableDefinition (:variable "$" "x") ":" (:type (:typeName "String")) (:defaultValue "=" (:value "\"X string\""))) ")")
+;(:variableDefinitions "(" (:variableDefinition (:variable "$" "x") ":" (:type (:typeName "String"))) ")")
+(defn- variable-defs [& v-defs]
+  (apply merge (filter map? v-defs)))
+
+(def ^:private value-or-variable identity)
+
+(defn- variable [_ var-name]
+  (keyword var-name))
+
 (defn- value [v]
   (if (string? v)
     ; Antlr leaves double quotes in strings: "\"foo\""
     (-> v (string/replace #"^\"" "") (string/replace #"\"$" ""))
     v))
-
-(defn- variable [_ var-name]
-  (let [kw (keyword var-name)]
-    (fn [node context info]
-      (get-in info [:variable-values kw]))))
 
 (defn- argument [k _ v] {(keyword k) v})
 
@@ -61,13 +105,19 @@
               (throw (IllegalArgumentException. "invalid query: missing selection set")) ;TODO dig up field name
               c-res)))))))
 
+(defn field-args [arg-map info]
+  (reduce-kv
+    (fn [m k v]
+      (assoc m k (if (keyword? v) (get-in info [:variable-values v]) v)))
+    {} (get arg-map :arguments {})))
+
 (defn- resolve-field [scalar? field-val-or-var arg-map root-val context info]
   (if-not (var? field-val-or-var) ;regular value or resolver var
     field-val-or-var
     (resolve-field-var scalar?
                        field-val-or-var
                        (if (seq (:path info)) root-val (:root-value info)) ;if first pass, use :root-val in info map
-                       (get arg-map :arguments {})
+                       (field-args arg-map info)
                        context
                        (assoc info :field-name (:field-name arg-map)))))
 
@@ -131,10 +181,12 @@
 
 ;TODO better way to get op fn?
 (defn- op-def
-  ([op]      (op-def :query "default" op))
-  ([kind op] (op-def   kind "default" op))
-  ([kind op-name op]
+  ([op]      (op-def :query "default" {} op))
+  ([kind op] (op-def   kind "default" {} op))
+  ([kind op-name op] (op-def kind op-name {} op))
+  ([kind op-name var-def op]
    (fn [schema context info]
+     ;;TODO validate and combine var-defs with (:variable-values info)
      ((:selection-set op) (get schema kind)
       context
       (assoc info :operation op-name :path [])))))
@@ -151,37 +203,54 @@
 
 ;;;
 
-(def ^:private ops {:document document
-          :definition definition
-          :operationDefinition op-def
-          :fragmentDefinition frag-def
-          :fragmentName frag-name
-          :fragmentSpread frag-spread
-          :typeCondition frag-type-cond
-          :typeName frag-type-name
-          :operationType  op-type
-          :fieldName field-name
-          :alias field-alias
-          :field field
-          :selection selection
-          :selectionSet selection-set
-          :valueOrVariable identity
-          :value value
-          :variable variable
-          :argument argument
-          :arguments arguments
-          :array array})
+(def ^:private ops
+  {:document document
+   :definition definition
+   :operationDefinition op-def
+   :fragmentDefinition frag-def
+   :fragmentName frag-name
+   :fragmentSpread frag-spread
+   :typeCondition frag-type-cond
+   :typeName frag-type-name
+   :operationType  op-type
+   :fieldName field-name
+   :alias field-alias
+   :field field
+   :selection selection
+   :selectionSet selection-set
+   :variableDefinition  variable-def
+   :variableDefinitions variable-defs
+   :defaultValue default-value
+   :valueOrVariable value-or-variable
+   :value value
+   :variable variable
+   :argument argument
+   :arguments arguments
+   :array array})
 
+
+;;;
 
 (defn- apply-ops [v]
   (if (and (seq? v) (keyword? (first v)))
     (apply (get ops (first v) identity) (rest v))
     v))
 
-;;;
-
-(defn parse [q-str]
+#_(defn parse [q-str]
   (try
     (->> q-str graphql (walk/postwalk apply-ops))
     (catch clj_antlr.ParseError ex
       (throw (IllegalArgumentException. (str "Parse error: " (.getMessage ex)))))))
+
+(defn parse [q-str]
+  (try
+    ;; Single-pass parsing is a bit faster so let's try it first.
+    ;; This is all we need most of the time.
+    (->> q-str graphql (walk/postwalk apply-ops))
+    (catch clj_antlr.ParseError ex
+      (try
+        ;; Whoops, that didn't work.
+        ;; Try to parse in two passes in order to work around reserved words in bad places.
+        (->> q-str graphql-two-step (walk/postwalk apply-ops))
+        (catch clj_antlr.ParseError ex
+          (throw (IllegalArgumentException. (str "Parse error: " (.getMessage ex)))))))))

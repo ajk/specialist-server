@@ -1,4 +1,3 @@
-
 /*
 The MIT License (MIT)
 
@@ -29,8 +28,11 @@ GraphQL grammar derived from:
     http://facebook.github.io/graphql/
     https://github.com/facebook/graphql
 
+
+Split into GraphQL0 and GraphQL1 for two-step parsing.
+
 */
-grammar GraphQL;
+grammar GraphQL0;
 
 document
    : definition+
@@ -45,44 +47,17 @@ operationDefinition
    ;
 
 selectionSet
-   : '{' selection ( ','? selection )* '}'
-   ;
+   : OPEN_CURLY (~CLOSE_CURLY | selectionSet)* CLOSE_CURLY;
+
 
 operationType
    : 'query' | 'mutation' | 'subscription'
-   ;
-
-selection
-   : field | fragmentSpread | inlineFragment
-   ;
-
-field
-   : fieldName arguments? directives? selectionSet?
-   ;
-
-fieldName
-   : alias | NAME
-   ;
-
-alias
-   : NAME ':' NAME
-   ;
-
-arguments
-   : '(' argument ( ',' argument )* ')'
    ;
 
 argument
    : NAME ':' valueOrVariable
    ;
 
-fragmentSpread
-   : '...' fragmentName directives?
-   ;
-
-inlineFragment
-   : '...' 'on' typeCondition directives? selectionSet
-   ;
 
 fragmentDefinition
    : 'fragment' fragmentName 'on' typeCondition directives? selectionSet
@@ -105,19 +80,11 @@ typeCondition
    ;
 
 variableDefinitions
-   : '(' variableDefinition ( ',' variableDefinition )* ')'
-   ;
+   : OPEN_PAREN (~CLOSE_PAREN)* CLOSE_PAREN;
 
-variableDefinition
-   : variable ':' type defaultValue?
-   ;
 
 variable
    : '$' NAME
-   ;
-
-defaultValue
-   : '=' value
    ;
 
 valueOrVariable
@@ -128,16 +95,9 @@ value
    : STRING | NUMBER | array | 'true' | 'false'
    ;
 
-type
-   : typeName nonNullType? | listType nonNullType?
-   ;
 
 typeName
    : NAME
-   ;
-
-listType
-   : '[' type ']'
    ;
 
 nonNullType
@@ -147,6 +107,19 @@ nonNullType
 array
    : '[' value ( ',' value )* ']' | '[' ']'
    ;
+
+
+DOTS : '...' ;
+
+EQ : '=' ;
+
+OPEN_CURLY : '{' ;
+
+CLOSE_CURLY : '}' ;
+
+OPEN_PAREN : '(' ;
+
+CLOSE_PAREN : ')' ;
 
 
 NAME

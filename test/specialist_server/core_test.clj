@@ -48,6 +48,12 @@
       (is (= "Hello meh" (:greeting res-meh)))
       (is (= false (:happy res-meh)))))
 
+  (testing "Queriy with a variable"
+    (let [q {:query "query Hello($name:String) { hello(name:$name) { greeting }}"
+             :variables {:name "Clojure!"}}
+          res (-> q graphql :data :hello)]
+      (is (= "Hello Clojure!" (:greeting res)))))
+
   (testing "Introspection"
     (is (= {:data {:__type {:fields '({:name "greeting"} {:name "happy"})}}}
            (graphql {:query "{__type(name:\"hello\") { fields { name }}}"})))))

@@ -29,27 +29,17 @@ GraphQL grammar derived from:
     http://facebook.github.io/graphql/
     https://github.com/facebook/graphql
 
-*/
-grammar GraphQL;
+Split into GraphQL0 and GraphQL1 for two-step parsing.
 
-document
-   : definition+
-   ;
+*/
+grammar GraphQL1;
 
 definition
-   : operationDefinition | fragmentDefinition
-   ;
-
-operationDefinition
-   : selectionSet | operationType NAME? variableDefinitions? directives? selectionSet
+   : variableDefinitions | selectionSet
    ;
 
 selectionSet
    : '{' selection ( ','? selection )* '}'
-   ;
-
-operationType
-   : 'query' | 'mutation' | 'subscription'
    ;
 
 selection
@@ -84,9 +74,6 @@ inlineFragment
    : '...' 'on' typeCondition directives? selectionSet
    ;
 
-fragmentDefinition
-   : 'fragment' fragmentName 'on' typeCondition directives? selectionSet
-   ;
 
 fragmentName
    : NAME
