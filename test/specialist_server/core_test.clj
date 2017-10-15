@@ -1,6 +1,7 @@
 (ns specialist-server.core-test
   (:require [clojure.test :refer :all]
             [clojure.spec.alpha :as s]
+            [clojure.pprint :refer [pprint]]
             [specialist-server.type :as t]
             [specialist-server.core :refer [executor]]))
 
@@ -28,7 +29,7 @@
 
 (s/fdef happy
         :args (s/tuple ::hello-node map? map? map?)
-        :ret boolean?)
+        :ret t/boolean)
 
 (s/fdef hello
         :args (s/tuple map? (s/keys :opt-un [::name]) map? map?)
@@ -55,5 +56,8 @@
       (is (= "Hello Clojure!" (:greeting res)))))
 
   (testing "Introspection"
-    (is (= {:data {:__type {:fields '({:name "greeting"} {:name "happy"})}}}
-           (graphql {:query "{__type(name:\"hello\") { fields { name }}}"})))))
+    (is (= {:data
+            {:__type
+             {:fields '({:type {:ofType {:name "String"}}, :name "greeting"}
+                        {:type {:ofType {:name "Boolean"}}, :name "happy"})}}}
+           (graphql {:query "{__type(name:\"hello\") { fields { type { ofType { name} } name }}}"})))))

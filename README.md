@@ -51,7 +51,7 @@ More info on GraphQL:
 
 (s/fdef happy
         :args (s/tuple ::hello-node map? map? map?)
-        :ret boolean?)
+        :ret t/boolean)
 
 (s/fdef hello
         :args (s/tuple map? (s/keys :opt-un [::name]) map? map?)

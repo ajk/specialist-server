@@ -19,7 +19,12 @@
   "Defines new scalar types."
   [type-name type-meta conform-fn]
   (let [meta-map (if (map? type-meta) type-meta {:name (name type-name) :description type-meta})]
-    `(def ~type-name
+    `(def ~(vary-meta type-name
+                      assoc
+                      :specialist-server.type/name (:name meta-map)
+                      :specialist-server.type/kind scalar-kind
+                      :specialist-server.type/type-description (:description meta-map)
+                      :specialist-server.type/field-description "Self descriptive.")
        (vary-meta (s/conformer ~conform-fn)
                   assoc
                   :specialist-server.type/name ~(:name meta-map)
@@ -91,9 +96,9 @@
    :description "The 'Boolean' scalar type represents 'true' or 'false'."}
   (fn [v]
     (cond
+      (and (boolean? v) (= true v))  true
+      (and (boolean? v) (= false v)) false
       (string/blank? v) ::s/invalid
-      (= true v)  true
-      (= false v) false
       (and (clojure.core/string? v) (re-find #"(?i)^true$" v)) true
       (and (clojure.core/string? v) (re-find #"(?i)^false$" v)) false
       :else ::s/invalid)))
