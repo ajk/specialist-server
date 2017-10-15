@@ -118,6 +118,8 @@ Let's start up your newfangled app and run some queries:
     
 Now you're thinking with graphs!
 
+**[Please see the wiki for full documentation.](https://github.com/ajk/specialist-server/wiki)**
+
 # Status
 
 Very much in alpha. You can expect breaking changes.
