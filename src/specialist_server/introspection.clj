@@ -96,6 +96,7 @@
                    (var? v)     :var
                    (keyword? v) :kw
                    (map? v)     :map
+                   (set? v)     :set
                    (seq? v)     :list
                    (symbol? v)  :sym
                    )))
@@ -125,6 +126,20 @@
 
 (defmethod type :sym [v]
   (-> v resolve meta type))
+
+(defmethod type :set [v]
+  (let [m (meta v)]
+    (-> base-type
+        (assoc :kind t/enum-kind)
+        (assoc :name (get m ::t/name (str "Enum" (hash v))))
+        (assoc :description (::t/type-description m))
+        (assoc :enumValues (map (fn [e]
+                                  {:name e
+                                   :description nil
+                                   :isDeprecated false
+                                   :deprecationReason nil})
+                                v))
+        non-null)))
 
 (defmethod type :list [v]
   ;;TODO test more variations
@@ -165,7 +180,8 @@
 (defmulti field (fn [v]
                   (cond
                     (var? v)     :var
-                    (keyword? v) :kw)))
+                    (keyword? v) :kw
+                    (seq? v)     :list)))
 
 (defmethod field :var [v]
   (let [v-meta (meta v)
@@ -182,21 +198,33 @@
 (defmethod field :kw [v]
   (let [spec (s/get-spec v)
         m (or (meta spec) (some-> spec s/form field-meta))]
-    (when (nil? m)
-      (prn v)
-      (prn "---"))
-    (if (::t/var m)
+    (cond
+      (::t/var m)
       (-> (::t/var m)
           field
           (assoc :description (::t/field-description m))
           (assoc :isDeprecated (boolean (::t/is-deprecated m)))
           (assoc :deprecationReason (::t/deprecation-reason m)))
+
+      (::t/field-description m)
       {:name (name v)
        :description (::t/field-description m)
        :args []
        :type (type v)
        :isDeprecated (boolean (::t/is-deprecated m))
-       :deprecationReason (::t/deprecation-reason m)})))
+       :deprecationReason (::t/deprecation-reason m)}
+
+      :else (-> spec s/form field (assoc :name (name v))))))
+
+(defmethod field :list [v]
+  (let [v-field (eval v)
+        m (meta v-field)]
+    {:name (::t/field-name m)
+     :description (::t/field-description m)
+     :args []
+     :type (type v-field)
+     :isDeprecated (boolean (::t/is-deprecated m))
+     :deprecationReason (::t/deprecation-reason m)}))
 
 (defmethod field :default [v]
   (prn v)
