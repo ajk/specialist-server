@@ -90,7 +90,8 @@
   ;; Run conformers for both input and output.
   (let [croak #(throw (IllegalArgumentException. "missing :args and/or :ret in fspec"))
         fspec (or (spec/get-spec fun-var) (croak))
-        c-args (spec/conform (or (:args fspec) (croak)) (vec args))]
+        c-args (spec/conform (or (:args fspec) (croak)) (vec args))
+        type-name (-> fun-var meta :name str)]
     (if (= c-args ::spec/invalid)
       (throw (ex-info (str "failed to conform arguments for " fun-var) (spec/explain-data (:args fspec) (vec args))))
       (let [res (apply (deref fun-var) c-args)]
@@ -100,10 +101,22 @@
             (do
               (println (spec/explain (:ret fspec) res)) ;DEBUG
               (throw (ex-info (str "failed to conform return value for " fun-var) (spec/explain-data (:ret fspec) res))))
-            (if (and scalar? (or (map? c-res) (and (coll? c-res) (-> c-res first map?))))
-              ;; the resolver returned a map but we expected a scalar value
-              (throw (IllegalArgumentException. "invalid query: missing selection set")) ;TODO dig up field name
-              c-res)))))))
+
+
+            (cond
+              (and scalar? (or (map? c-res) (and (coll? c-res) (-> c-res first map?))))
+              (throw (IllegalArgumentException.
+                       (str "invalid query on " type-name ": "
+                            "the resolver returned a map or list but a scalar value was queried.")))
+
+              (map? c-res)
+              (assoc c-res :__typename type-name)
+
+              (and (coll? c-res) (-> c-res first map?))
+              (map #(assoc % :__typename type-name) c-res)
+
+              :else c-res)
+            ))))))
 
 (defn field-args [arg-map info]
   (reduce-kv

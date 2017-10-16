@@ -60,4 +60,9 @@
             {:__type
              {:fields '({:type {:ofType {:name "String"}}, :name "greeting"}
                         {:type {:ofType {:name "Boolean"}}, :name "happy"})}}}
-           (graphql {:query "{__type(name:\"hello\") { fields { type { ofType { name} } name }}}"})))))
+           (graphql {:query "{__type(name:\"hello\") { fields { type { ofType { name} } name }}}"})))
+
+    (is (= "hello" (-> {:query "{hello {__typename}}"} graphql :data :hello :__typename)))
+
+    ))
+
