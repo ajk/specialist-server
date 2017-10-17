@@ -22,6 +22,8 @@
    :inputFields nil
    :ofType nil})
 
+(def default-type (assoc base-type :name "String"))
+
 (def spec-ns "clojure.spec.alpha") ;TODO rename when not alpha
 
 ; set of specs we consider to be lists
@@ -35,7 +37,7 @@
   (into {} (map vec (partition 2 coll))))
 
 (defn get-spec [v]
-  (s/form (s/get-spec v)))
+  (some-> v s/get-spec s/form))
 
 (defn non-null [t]
   (-> base-type
@@ -80,15 +82,21 @@
 ;     Also, make opt-un keys nilable.
 (defn arg-keys [v]
   (if-not (var? v) (throw (Exception. "arg-keys: input must be a var")))
-  (let [a (-> v s/get-spec s/form rest even->map :args)]
+  (let [a (some-> v s/get-spec s/form rest even->map :args)]
     (if (= 'clojure.spec.alpha/tuple (first a))
       (->> a rest second ret-keys))))
 
 (defn args [v]
-  (->> v arg-keys
-       (map field)
-       (map #(select-keys % [:name :description :type]))
-       (map #(assoc % :defaultValue nil)))) ;TODO support default values
+  (let [a-keys (arg-keys v)
+        a-list (map #(hash-map
+                       :name (name %)
+                       :description nil
+                       :type default-type
+                       :defaultValue nil) a-keys)] ;TODO support default values
+    (map (fn [a b]
+           (if b
+             (assoc a :description (:description b) :type (:type b))
+             a)) a-list (map field a-keys))))
 
 ;FIXME enums next
 (defmulti type (fn [v]
@@ -122,7 +130,7 @@
         spec-meta (meta spec)]
     (if (or (::t/var spec-meta) (::t/kind spec-meta))
       (type spec-meta)
-      (-> spec s/form type))))
+      (some-> spec s/form type))))
 
 (defmethod type :sym [v]
   (-> v resolve meta type))
@@ -199,6 +207,14 @@
   (let [spec (s/get-spec v)
         m (or (meta spec) (some-> spec s/form field-meta))]
     (cond
+      (nil? spec) ;no spec for kw => default field
+      {:name (name v)
+       :description nil
+       :args []
+       :type default-type
+       :isDeprecated false
+       :deprecationReason nil}
+
       (::t/var m)
       (-> (::t/var m)
           field
@@ -214,7 +230,7 @@
        :isDeprecated (boolean (::t/is-deprecated m))
        :deprecationReason (::t/deprecation-reason m)}
 
-      :else (-> spec s/form field (assoc :name (name v))))))
+      :else (some-> spec s/form field (assoc :name (name v))))))
 
 (defmethod field :list [v]
   (let [v-field (eval v)

@@ -21,9 +21,8 @@
 (s/def ::n-bool (s/nilable t/boolean))
 (s/def ::c-string (s/nilable (s/* ::t-string)))
 
-(s/def ::f-enum (t/field #{"A" "B" "C"} "My ABCs"))
 
-(meta (t/field #{"A" "B" "C"} "My ABCs"))
+(s/def ::f-enum (t/field #{"A" "B" "C"} "My ABCs"))
 
 (s/def ::t-float t/float)
 (s/def ::f-float (t/field (s/nilable ::t-float) "Field of type Int"))
@@ -35,7 +34,7 @@
         :args (s/tuple map? (s/keys :req-un [::t-int]) map? map?)
         :ret t/long)
 
-(s/def ::m-node (s/keys :req-un [::i-resolver ::f-int]))
+(s/def ::m-node (s/keys :req-un [::i-resolver ::f-int ::missing]))
 
 (s/fdef m-resolver
         :args any?
@@ -53,13 +52,15 @@
     (is (= "Boolean" (-> ::n-bool i/type :name)))
     (is (= "String"  (-> ::c-string i/type :ofType :ofType :name)))
 
-    ;(is (= t/enum-kind (-> ::t-enum i/type :ofType :kind)))
-
     (is (= "Long" (-> #'i-resolver i/type :ofType :name)))
     (is (= "m-resolver" (-> #'m-resolver i/type :ofType :name))))
 
   (testing "fields"
     (is (= "f-enum" (-> ::f-enum i/field :name)))
     (is (= "My ABCs" (-> ::f-enum i/field :description)))
-    (is (= t/enum-kind (-> ::f-enum i/field :type :ofType :kind))))
+    (is (= t/enum-kind (-> ::f-enum i/field :type :ofType :kind)))
+    (is (= '(::i-resolver ::f-int ::missing) (-> #'m-resolver i/type :ofType :fields)))
+
+    (is (= "missing" (-> ::missing i/field :name)))
+    (is (= "String"  (-> ::missing i/field :type :name))))
   )
