@@ -1,10 +1,15 @@
 (ns specialist-server.core
-  (:require [specialist-server.parser :as p]
+  (:require [clojure.walk :as walk]
+            [specialist-server.parser :as p]
             [specialist-server.introspection :as i]))
+
+;; If there are any unevaluated resolver functions, run them now
+(defn run-fns [node]
+  (if (fn? node) (node) node))
 
 (defn- execute [query schema context info]
   (try
-    ((p/parse query) schema context info)
+    (walk/prewalk run-fns (walk/postwalk run-fns ((p/parse query) schema context info)))
     (catch IllegalArgumentException ex
       {:errors [{:message (.getMessage ex)}]})))
 

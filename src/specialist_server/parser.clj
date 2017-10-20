@@ -33,7 +33,7 @@
 
 (defn graphql-two-step
   "ANTLR graphql parser croaks if reserved words are used in selectionSet or variableDefinition:
-     'query', 'mutation', 'subscription', 'fragment', 'on'
+  'query', 'mutation', 'subscription', 'fragment', 'on'
 
   As a workaround we can split parsing into two steps. The downside is that this is slower.
   So we try to parse queries in single pass first and if it fails we fall back to this."
@@ -91,32 +91,36 @@
   (let [croak #(throw (IllegalArgumentException. "missing :args and/or :ret in fspec"))
         fspec (or (spec/get-spec fun-var) (croak))
         c-args (spec/conform (or (:args fspec) (croak)) (vec args))
-        type-name (-> fun-var meta :name str)]
+        type-name (-> fun-var meta :name str)
+        conform (fn [res]
+                    (let [c-res (spec/conform (or (:ret fspec) (croak)) res)] ;TODO should be unform?
+                      (cond
+                        (= c-res ::spec/invalid)
+                        (do
+                          (println (spec/explain (:ret fspec) res)) ;DEBUG
+                          (throw (ex-info (str "failed to conform return value for " fun-var) (spec/explain-data (:ret fspec) res))))
+
+                        (and scalar? (or (map? c-res) (and (coll? c-res) (-> c-res first map?))))
+                        (throw (IllegalArgumentException.
+                                 (str "invalid query on " type-name ": "
+                                      "the resolver returned a map or list but a scalar value was queried.")))
+
+                        (map? c-res)
+                        (assoc c-res :__typename type-name)
+
+                        (and (coll? c-res) (-> c-res first map?))
+                        (map #(assoc % :__typename type-name) c-res)
+
+                        :else c-res)))]
+
     (if (= c-args ::spec/invalid)
       (throw (ex-info (str "failed to conform arguments for " fun-var) (spec/explain-data (:args fspec) (vec args))))
       (let [res (apply (deref fun-var) c-args)]
-        (let [res (if (fn? res) (res) res)
-              c-res (spec/conform (or (:ret fspec) (croak)) res)]
-          (if (= c-res ::spec/invalid)
-            (do
-              (println (spec/explain (:ret fspec) res)) ;DEBUG
-              (throw (ex-info (str "failed to conform return value for " fun-var) (spec/explain-data (:ret fspec) res))))
-
-
-            (cond
-              (and scalar? (or (map? c-res) (and (coll? c-res) (-> c-res first map?))))
-              (throw (IllegalArgumentException.
-                       (str "invalid query on " type-name ": "
-                            "the resolver returned a map or list but a scalar value was queried.")))
-
-              (map? c-res)
-              (assoc c-res :__typename type-name)
-
-              (and (coll? c-res) (-> c-res first map?))
-              (map #(assoc % :__typename type-name) c-res)
-
-              :else c-res)
-            ))))))
+        (if (fn? res) ; Allow for batch-loader to collect more nodes, return closure here and run later.
+          (with-meta
+            (fn [] (conform (res)))
+            {::scalar? scalar?})
+          (conform res))))))
 
 (defn field-args [arg-map info]
   (reduce-kv
@@ -136,17 +140,17 @@
 
 (defn- resolve-field-selection [field-val-or-var arg-map root-val context info]
   (if-let [selection-set-fn (:selection-set arg-map)]
-    (selection-set-fn (resolve-field false field-val-or-var arg-map root-val context info)
-                      context
-                      (update info :path conj (:field-name arg-map)))
+    (let [fld (resolve-field false field-val-or-var arg-map root-val context info)]
+      (if (fn? fld) ; Allow for batch-loader to collect more nodes, return closure here and run later.
+        (fn []
+          (selection-set-fn (fld) context (update info :path conj (:field-name arg-map))))
+        (selection-set-fn fld context (update info :path conj (:field-name arg-map)))))
     (resolve-field true field-val-or-var arg-map root-val context info)))
-
 
 (defn- get-field [arg-map root-val context info]
   (if (contains? root-val (:field-name arg-map))
     (resolve-field-selection (get root-val (:field-name arg-map)) arg-map root-val context info)
     (throw (IllegalArgumentException. (str "no such field: " (:field-name arg-map) " in " (pr-str root-val))))))
-
 
 (defn- field [& args]
  (apply merge-with (cons merge args)))
@@ -156,20 +160,18 @@
 (defn- sel-set-field [selections context info node]
   (reduce (fn [coll s]
             (if-let [k (get s :field-alias (get s :field-name))]
-              (assoc coll k (get-field s node context info))      ; regular field selection...
+              (assoc coll k (get-field s node context info)) ; regular field selection...
               (merge coll ((:selection-set s) node context info)))) ; ...or fragment selection set
           {} selections))
 
 (defn- selection-set [& selections]
   {:selection-set (fn [node context info]
-                    (let [field-fn (partial sel-set-field (filter map? selections) context info)
-                          parent (if (fn? node) (node) node)] ;resolve batch loaders
-                      (if (nil? parent)
+                    (let [field-fn (partial sel-set-field (filter map? selections) context info)]
+                      (if (nil? node)
                         nil
-                        (if (sequential? parent)
-                          (doall (map field-fn parent))
-                          (field-fn parent)))))})
-
+                        (if (sequential? node)
+                          (map field-fn node)
+                          (field-fn node)))))})
 ;;;
 
 ;TODO enforce type conditions?
@@ -241,19 +243,12 @@
    :arguments arguments
    :array array})
 
-
 ;;;
 
 (defn- apply-ops [v]
   (if (and (seq? v) (keyword? (first v)))
     (apply (get ops (first v) identity) (rest v))
     v))
-
-#_(defn parse [q-str]
-  (try
-    (->> q-str graphql (walk/postwalk apply-ops))
-    (catch clj_antlr.ParseError ex
-      (throw (IllegalArgumentException. (str "Parse error: " (.getMessage ex)))))))
 
 (defn parse [q-str]
   (try

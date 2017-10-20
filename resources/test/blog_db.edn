@@ -1,0 +1,44 @@
+{:author
+ [{:id 1 :name "Carey Baltes"       :email "carey.baltes@example.com"}
+  {:id 2 :name "Ermelinda Mcelveen" :email "ermelinda.mcelveen@example.com"}
+  {:id 3 :name "Jeanna Hibbard"     :email "jeanna.hibbard@example.com"}]
+
+ :post
+ [{:id 1 :author-id 1
+   :date "2017-10-01"
+   :title "Lorem ipsum dolor sit amet"
+   :text  "Lorem ipsum dolor sit amet, eam cu paulo ornatus. Quem wisi dicat ex vix, ei dolorem imperdiet urbanitas pro."}
+  {:id 2 :author-id 1
+   :date "2017-10-04"
+   :title "Omnes veniam no per"
+   :text "Omnes veniam no per, cibo integre laoreet te pri. His probo senserit forensibus cu."}
+  {:id 3 :author-id 3
+   :date "2017-10-10"
+   :title "Eam discere principes comprehensam id"
+   :text "Eam discere principes comprehensam id, te facilis consequat mei. Est ad modus ludus antiopam, cu novum adipiscing sit. "}
+  {:id 4 :author-id 2
+   :date "2017-10-11"
+   :title "Iuvaret incorrupte his ea"
+   :text "Iuvaret incorrupte his ea. No mucius instructior definitionem quo. Eos at amet quodsi."}]
+
+ :like
+ [{:post-id 1 :count 2}
+  {:post-id 2 :count 5}
+  {:post-id 3 :count 3}
+  {:post-id 4 :count 8}]
+
+ :comment
+ [{:id 1 :post-id 1 :date "2017-10-01" :email "ermelinda.mcelveen@example.com"
+   :text "Perpetua molestiae accommodare ea has, mel eu utamur oblique."}
+  {:id 2 :post-id 1 :date "2017-10-01" :email "jeanna.hibbard@example.com"
+   :text "Iusto fuisset expetendis qui no, cu viris exerci putent sed. Sea dolore audiam efficiantur in, in mel volutpat dissentiet."}
+  {:id 3 :post-id 2 :date "2017-10-05" :email "jeanna.hibbard@example.com"
+   :text "Vim id fugit tation platonem, mei eu abhorreant consequuntur, te est esse latine."}
+  {:id 4 :post-id 4 :date "2017-10-21" :email "irmgard.lipscomb@example.com"
+   :text "No has prompta sanctus, at augue virtute officiis per, tollit molestie contentiones cu qui."}
+  {:id 5 :post-id 3 :date "2017-10-11" :email "lourie.racca@example.com"
+   :text "Sed impetus lobortis molestiae et, aperiri verterem no has, an ius diam convenire."}
+  {:id 6 :post-id 4 :date "2017-10-22" :email "callie.Foti@example.com"
+   :text "Iuvaret incorrupte his ea. No mucius instructior definitionem quo."}
+  {:id 7 :post-id 1 :date "2017-10-25" :email "jack.greg@example.com"
+   :text "Laudem liberavisse pri ne, sed iisque tibique no, autem primis ancillae ut eam."}]}
