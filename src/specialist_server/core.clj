@@ -15,7 +15,8 @@
                          (assoc-in [:query :__schema] #'i/__schema)
                          (assoc-in [:query :__type]   #'i/__type))]
     (fn [{:keys [query variables root context]}]
-      (let [info {:schema schema
+      (let [info {:id (str (java.util.UUID/randomUUID))
+                  :schema schema
                   :type-map type-map
                   :variable-values (reduce-kv (fn [m k v] (assoc m (keyword k) v )) {} variables)
                   :root-value (or root {})}]
