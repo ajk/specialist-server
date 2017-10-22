@@ -132,27 +132,32 @@
                                 :posts  #'posts
                                 :author #'author}}))
 
+#_(reset! query-counter 0)
+
 #_(pprint (graphql
-            {:context {:req-cache (b/cache)}
+            {:deferred? true :context {:req-cache (b/cache)}
              :query "{post(id:2) {__typename id title author {name} comments {text}}}" }))
 
 #_(pprint (graphql
-            {:context {:req-cache (b/cache)}
+            {:deferred? true :context {:req-cache (b/cache)}
              :query "{posts {id title likes author {name}}}" }))
 
 #_(pprint (graphql
-            {:context {:req-cache (b/cache)}
+            {:deferred? true :context {:req-cache (b/cache)}
              :query "{author(id:1) { posts {title comments {id text email}}}}" }))
 
-#_(reset! query-counter 0)
-#_(pprint (graphql {:context {:req-cache (b/cache)} :query "{posts {id comments {id} author {posts {comments {id}}}}}" }))
+#_(pprint (graphql {:deferred? true :context {:req-cache (b/cache)} :query "{posts {id comments {id} author {posts {comments {id}}}}}" }))
+
 #_(deref query-counter)
+
 ;;;
 
 (deftest batch-loader
   (testing "load comments"
     (reset! query-counter 0)
-    (let [res (graphql {:context {:req-cache (b/cache)} :query "{posts {id comments {id}}}" })]
+    (let [res (graphql
+                {:deferred? true :context {:req-cache (b/cache)}
+                 :query "{posts {id comments {id}}}" })]
       (is (= 2 @query-counter))
       )
     )

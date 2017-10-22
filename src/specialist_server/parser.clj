@@ -116,11 +116,10 @@
     (if (= c-args ::spec/invalid)
       (throw (ex-info (str "failed to conform arguments for " fun-var) (spec/explain-data (:args fspec) (vec args))))
       (let [res (apply (deref fun-var) c-args)]
-        (if (fn? res) ; Allow for batch-loader to collect more nodes, return closure here and run later.
-          (with-meta
-            (fn [] (conform (res)))
-            {::scalar? scalar?})
-          (conform res))))))
+        (if (-> args last :deferred?) ; Allow for batch-loader to collect more nodes, return closure here and run later.
+          (fn []
+            (conform (if (fn? res) (res) res)))
+          (conform   (if (fn? res) (res) res)))))))
 
 (defn field-args [arg-map info]
   (reduce-kv
@@ -141,10 +140,10 @@
 (defn- resolve-field-selection [field-val-or-var arg-map root-val context info]
   (if-let [selection-set-fn (:selection-set arg-map)]
     (let [fld (resolve-field false field-val-or-var arg-map root-val context info)]
-      (if (fn? fld) ; Allow for batch-loader to collect more nodes, return closure here and run later.
+      (if (:deferred? info) ; Allow for batch-loader to collect more nodes, return closure here and run later.
         (fn []
-          (selection-set-fn (fld) context (update info :path conj (:field-name arg-map))))
-        (selection-set-fn fld context (update info :path conj (:field-name arg-map)))))
+          (selection-set-fn (if (fn? fld) (fld) fld) context (update info :path conj (:field-name arg-map))))
+        (selection-set-fn   (if (fn? fld) (fld) fld) context (update info :path conj (:field-name arg-map)))))
     (resolve-field true field-val-or-var arg-map root-val context info)))
 
 (defn- get-field [arg-map root-val context info]
@@ -166,12 +165,13 @@
 
 (defn- selection-set [& selections]
   {:selection-set (fn [node context info]
-                    (let [field-fn (partial sel-set-field (filter map? selections) context info)]
-                      (if (nil? node)
+                    (let [field-fn (partial sel-set-field (filter map? selections) context info)
+                          parent (if (fn? node) (node) node)]
+                      (if (nil? parent)
                         nil
-                        (if (sequential? node)
-                          (map field-fn node)
-                          (field-fn node)))))})
+                        (if (sequential? parent)
+                          (doall (map field-fn parent))
+                          (field-fn parent)))))})
 ;;;
 
 ;TODO enforce type conditions?
