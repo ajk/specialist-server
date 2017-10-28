@@ -5,6 +5,7 @@
 - Added \_\_typename field to object types
 - Added basic Enum support to t/field
 - Introspection fixes
+- Added first version of batch-loader module
 
 
 ## 0.1.0 - 2017-10-15
