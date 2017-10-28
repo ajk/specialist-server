@@ -21,6 +21,7 @@
 (s/def ::n-bool (s/nilable t/boolean))
 (s/def ::c-string (s/nilable (s/* ::t-string)))
 
+(s/def ::f-nil-int (s/nilable (t/field  t/int "Nilable int field")))
 
 (s/def ::f-enum (t/field #{"A" "B" "C"} "My ABCs"))
 
@@ -31,14 +32,20 @@
 (s/def ::i-resolver (t/resolver #'i-resolver))
 
 (s/fdef i-resolver
-        :args (s/tuple map? (s/keys :req-un [::t-int]) map? map?)
+        :args (s/tuple map? (s/keys :req-un [::f-nil-int ::t-undef] :opt-un [::f-enum]) map? map?)
         :ret t/long)
 
-(s/def ::m-node (s/keys :req-un [::i-resolver ::f-int ::missing]))
+(s/def ::m-node (s/keys :req-un [::i-resolver ::f-int ::missing ::f-enum]))
 
 (s/fdef m-resolver
         :args any?
         :ret ::m-node)
+
+
+;;;
+
+;; FIXME
+#_(pprint (keys (i/type-map {:query {:m #'i-resolver}})))
 
 ;;;
 
@@ -59,7 +66,7 @@
     (is (= "f-enum" (-> ::f-enum i/field :name)))
     (is (= "My ABCs" (-> ::f-enum i/field :description)))
     (is (= t/enum-kind (-> ::f-enum i/field :type :ofType :kind)))
-    (is (= '(::i-resolver ::f-int ::missing) (-> #'m-resolver i/type :ofType :fields)))
+    (is (= '(::i-resolver ::f-int ::missing ::f-enum) (-> #'m-resolver i/type :ofType :fields)))
 
     (is (= "missing" (-> ::missing i/field :name)))
     (is (= "String"  (-> ::missing i/field :type :name))))

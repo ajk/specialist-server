@@ -83,7 +83,7 @@
 (defn arg-keys [v]
   (if-not (var? v) (throw (Exception. "arg-keys: input must be a var")))
   (let [a (some-> v s/get-spec s/form rest even->map :args)]
-    (if (= 'clojure.spec.alpha/tuple (first a))
+    (if (and (seq? a) (= 'clojure.spec.alpha/tuple (first a)))
       (->> a rest second ret-keys))))
 
 (defn args [v]
@@ -94,9 +94,8 @@
                        :type default-type
                        :defaultValue nil) a-keys)] ;TODO support default values
     (map (fn [a b]
-           (if b
-             (assoc a :description (:description b) :type (:type b))
-             a)) a-list (map field a-keys))))
+           (if b (assoc a :description (:description b) :type (:type b)) a))
+         a-list (map field a-keys))))
 
 ;FIXME enums next
 (defmulti type (fn [v]
@@ -163,11 +162,13 @@
 
     (= 'specialist-server.type/field (first v))
     (let [m (field-meta v)]
-      (-> base-type
-          (assoc :kind (::t/kind m))
-          (assoc :name (::t/name m))
-          (assoc :description (::t/type-description m))
-          non-null))))
+      (if (set? (second v))
+        (type (second v))
+        (-> base-type
+            (assoc :kind (::t/kind m))
+            (assoc :name (::t/name m))
+            (assoc :description (::t/type-description m))
+            non-null)))))
 
 
 (defmethod type :map [v]
@@ -232,13 +233,19 @@
 
       :else (some-> spec s/form field (assoc :name (name v))))))
 
-(defmethod field :list [v]
-  (let [v-field (eval v)
+
+
+(defmethod field :list [v-list]
+  (let [v-field (loop [v v-list]
+                  (cond
+                    (not (seq? v)) nil
+                    (= 'specialist-server.type/field (first v)) (eval v)
+                    :else (recur (second v))))
         m (meta v-field)]
     {:name (::t/field-name m)
      :description (::t/field-description m)
      :args []
-     :type (type v-field)
+     :type (type v-list)
      :isDeprecated (boolean (::t/is-deprecated m))
      :deprecationReason (::t/deprecation-reason m)}))
 
