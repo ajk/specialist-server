@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [0.2.0] - 2017-10-29
+
 - Added \_\_typename field to object types
 - Added basic Enum support to t/field
 - Introspection fixes
@@ -12,4 +14,5 @@
 
 - Initial release
 
-[Unreleased]: https://github.com/ajk/specialist-server/compare/0.1.0...HEAD
+[Unreleased]: https://github.com/ajk/specialist-server/compare/0.2.0...HEAD
+[0.2.0]: https://github.com/ajk/specialist-server/compare/0.1.0...0.2.0
