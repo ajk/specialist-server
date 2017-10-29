@@ -204,7 +204,9 @@
      ;;TODO validate and combine var-defs with (:variable-values info)
      ((:selection-set op) (get schema kind)
       context
-      (assoc info :operation op-name :path [])))))
+      (assoc info :operation op-name
+                  :path []
+                  :deferred? (if (= :query kind) (:deferred? info) false))))))
 
 (def ^:private definition identity)
 

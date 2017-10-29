@@ -44,7 +44,6 @@
 
 ;;;
 
-;; FIXME
 #_(pprint (keys (i/type-map {:query {:m #'i-resolver}})))
 
 ;;;
