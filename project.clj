@@ -1,9 +1,9 @@
-(defproject ajk/specialist-server "0.2.0"
+(defproject ajk/specialist-server "0.3.0-SNAPSHOT"
   :description "Spec-driven Clojure GraphQL server"
   :url "https://github.com/ajk/specialist-server"
   :license {:name "Eclipse Public License"
             :url "http://www.eclipse.org/legal/epl-v10.html"}
-  :dependencies [[org.clojure/clojure "1.9.0-beta3"]
+  :dependencies [[org.clojure/clojure "1.9.0-RC1"  :scope "provided"]
                  [clj-antlr "0.2.4"]]
 
   :min-lein-version "2.7.1"
