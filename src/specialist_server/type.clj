@@ -32,6 +32,25 @@
                   :specialist-server.type/type-description ~(:description meta-map)
                   :specialist-server.type/field-description "Self descriptive."))))
 
+(defmacro defenum
+  "Defines new enum types."
+  [enum-name enum-meta enum-set]
+  (when-not (set? enum-set)
+    (throw (IllegalArgumentException. "last argument must be a set")))
+  (let [meta-map (if (map? enum-meta) enum-meta {:name (name enum-name) :description enum-meta})]
+    `(def ~(vary-meta enum-name
+                      assoc
+                      :specialist-server.type/name (:name meta-map)
+                      :specialist-server.type/kind enum-kind
+                      :specialist-server.type/type-description (:description meta-map)
+                      :specialist-server.type/field-description "Self descriptive.")
+       (vary-meta ~enum-set
+                  assoc
+                  :specialist-server.type/name ~(:name meta-map)
+                  :specialist-server.type/kind ~enum-kind
+                  :specialist-server.type/type-description ~(:description meta-map)
+                  :specialist-server.type/field-description "Self descriptive."))))
+
 
 (defn field
   ([t doc] (field t doc {}))

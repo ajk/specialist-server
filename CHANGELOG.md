@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- Added enum types
+
 ## [0.2.0] - 2017-10-29
 
 - Added \_\_typename field to object types

@@ -16,6 +16,7 @@
   {:i-resolver #'i-resolver
    :f-float 123.123})
 
+(t/defenum my-enum "new enum type" #{"ONE" "TWO" "THREE"})
 
 (s/def ::t-string t/string)
 (s/def ::n-bool (s/nilable t/boolean))
@@ -24,6 +25,8 @@
 (s/def ::f-nil-int (s/nilable (t/field  t/int "Nilable int field")))
 
 (s/def ::f-enum (t/field #{"A" "B" "C"} "My ABCs"))
+
+(s/def ::f-enum-2 (t/field my-enum "My numbers"))
 
 (s/def ::t-float t/float)
 (s/def ::f-float (t/field (s/nilable ::t-float) "Field of type Int"))
@@ -59,13 +62,20 @@
     (is (= "String"  (-> ::c-string i/type :ofType :ofType :name)))
 
     (is (= "Long" (-> #'i-resolver i/type :ofType :name)))
-    (is (= "m-resolver" (-> #'m-resolver i/type :ofType :name))))
+    (is (= "m-resolver" (-> #'m-resolver i/type :ofType :name)))
+
+    (is (set? my-enum))
+    (is (= t/enum-kind (-> my-enum i/type :ofType :kind)))
+    (is (= "new enum type" (-> my-enum i/type :ofType :description))))
 
   (testing "fields"
     (is (= "f-enum" (-> ::f-enum i/field :name)))
     (is (= "My ABCs" (-> ::f-enum i/field :description)))
     (is (= t/enum-kind (-> ::f-enum i/field :type :ofType :kind)))
     (is (= '(::i-resolver ::f-int ::missing ::f-enum) (-> #'m-resolver i/type :ofType :fields)))
+
+    (is (= t/enum-kind (-> ::f-enum-2 i/field :type :ofType :kind)))
+    (is (= "my-enum" (-> ::f-enum-2 i/field :type :ofType :name)))
 
     (is (= "missing" (-> ::missing i/field :name)))
     (is (= "String"  (-> ::missing i/field :type :name))))
