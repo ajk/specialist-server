@@ -77,7 +77,7 @@ Modify the project.clj file and add dependencies:
                  [compojure "1.6.0"]
                  [ring/ring-defaults "0.3.1"]
                  [ring/ring-json "0.4.0"]
-                 [ajk/specialist-server "0.2.0-SNAPSHOT"]]
+                 [ajk/specialist-server "0.3.0-SNAPSHOT"]]
   :plugins [[lein-ring "0.12.1"]]
   :ring {:handler hello-world.handler/app}
   :profiles
