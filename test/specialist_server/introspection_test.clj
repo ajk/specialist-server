@@ -22,6 +22,7 @@
 (s/def ::n-bool (s/nilable t/boolean))
 (s/def ::c-string (s/nilable (s/* ::t-string)))
 
+(s/def ::f-int (t/field  t/int "Int field"))
 (s/def ::f-nil-int (s/nilable (t/field  t/int "Nilable int field")))
 
 (s/def ::f-enum (t/field #{"A" "B" "C"} "My ABCs"))
@@ -29,8 +30,10 @@
 (s/def ::f-enum-2 (t/field my-enum "My numbers"))
 
 (s/def ::t-float t/float)
-(s/def ::f-float (t/field (s/nilable ::t-float) "Field of type Int"))
+(s/def ::f-float (t/field (s/nilable ::t-float) "Field of type Float"))
 
+
+(s/def ::f-list (s/* ::f-int))
 
 (s/def ::i-resolver (t/resolver #'i-resolver))
 
@@ -38,7 +41,7 @@
         :args (s/tuple map? (s/keys :req-un [::f-nil-int ::t-undef] :opt-un [::f-enum]) map? map?)
         :ret t/long)
 
-(s/def ::m-node (s/keys :req-un [::i-resolver ::f-int ::missing ::f-enum]))
+(s/def ::m-node (s/keys :req-un [::i-resolver ::f-int ::missing ::f-enum-2]))
 
 (s/fdef m-resolver
         :args any?
@@ -47,11 +50,18 @@
 
 ;;;
 
-#_(pprint (keys (i/type-map {:query {:m #'i-resolver}})))
+#_(pprint (i/type ::f-list))
+
+#_(pprint (keys (i/type-map {:query {:m #'m-resolver}})))
 
 ;;;
 
 (deftest introspection-test
+  (testing "type-map"
+    (let [t-map (i/type-map {:query {:m #'m-resolver}})]
+      (is (contains? t-map "String"))
+      (is (contains? t-map "m-resolver"))
+      (is (contains? t-map "my-enum"))))
   (testing "types"
     (is (nil? (-> ::t-string i/type :name)))
     (is (= t/non-null-kind (-> ::t-string i/type :kind)))
@@ -72,7 +82,7 @@
     (is (= "f-enum" (-> ::f-enum i/field :name)))
     (is (= "My ABCs" (-> ::f-enum i/field :description)))
     (is (= t/enum-kind (-> ::f-enum i/field :type :ofType :kind)))
-    (is (= '(::i-resolver ::f-int ::missing ::f-enum) (-> #'m-resolver i/type :ofType :fields)))
+    (is (= '(::i-resolver ::f-int ::missing ::f-enum-2) (-> #'m-resolver i/type :ofType :fields)))
 
     (is (= t/enum-kind (-> ::f-enum-2 i/field :type :ofType :kind)))
     (is (= "my-enum" (-> ::f-enum-2 i/field :type :ofType :name)))

@@ -5,7 +5,6 @@
             [specialist-server.type :as t]))
 
 ;TODO
-; - Enum
 ; - Input object
 ; - Directive
 ; - Union (?)
@@ -45,7 +44,7 @@
       (assoc :ofType t)))
 
 (defn field-meta [v]
-  (if (seq v)
+  (when (seq v)
     (if (= 'specialist-server.type/field (first v))
       (-> v eval meta)
       (field-meta (second v)))))
@@ -81,10 +80,10 @@
 ;TODO Do we need to support more than spec/tuple?
 ;     Also, make opt-un keys nilable.
 (defn arg-keys [v]
-  (if-not (var? v) (throw (Exception. "arg-keys: input must be a var")))
-  (let [a (some-> v s/get-spec s/form rest even->map :args)]
-    (if (and (seq? a) (= 'clojure.spec.alpha/tuple (first a)))
-      (->> a rest second ret-keys))))
+  (when (var? v)
+    (let [a (some-> v s/get-spec s/form rest even->map :args)]
+      (if (and (seq? a) (= 'clojure.spec.alpha/tuple (first a)))
+        (->> a rest second ret-keys)))))
 
 (defn args [v]
   (let [a-keys (arg-keys v)
@@ -97,7 +96,6 @@
            (if b (assoc a :description (:description b) :type (:type b)) a))
          a-list (map field a-keys))))
 
-;FIXME enums next
 (defmulti type (fn [v]
                  (cond
                    (var? v)     :var
@@ -158,7 +156,9 @@
         non-null)
 
     (= 'clojure.spec.alpha/nilable (first v))
-    (:ofType (type (second v))) ;strip non-null type wrapper
+    (let [t (type (second v))]
+      ;;strip non-null type wrapper
+      (if (= t/non-null-kind (:kind t)) (:ofType t) t))
 
     (= 'specialist-server.type/field (first v))
     (let [m (field-meta v)]
@@ -259,14 +259,18 @@
 (defn- call-fn [f]
   (if (fn? f) (f) f))
 
-(defn var->types [coll v]
-  (loop [t (type v)]
+(defn- field->types [coll v]
+  (let [v-type (loop [v-t (type v)]
+                 (cond
+                   (nil? v-t)  nil
+                   (:name v-t) v-t
+                   :else (recur (:ofType v-t))))]
     (cond
-      (nil? t)  coll
-      (:name t) (assoc coll (:name t) t)
-      :else     (recur (:ofType t)))))
-
-;TODO dig deeper for types
+      (nil? v-type) coll
+      (contains? coll (:name v-type)) coll
+      :else (assoc (reduce field->types coll (concat (arg-keys v) (ret-keys v)))
+                   (:name v-type)
+                   v-type))))
 
 (defn type-map [schema]
   (assoc (->> schema
@@ -274,9 +278,8 @@
               (map vals)
               (reduce concat [])
               (filter var?)
-              (reduce (fn [coll v] (concat coll [v] (arg-keys v) (ret-keys v))) [])
               (concat t/built-in)
-              (reduce var->types {}))
+              (reduce field->types {}))
          "QueryType"
          (-> base-type
              (assoc :kind t/object-kind)

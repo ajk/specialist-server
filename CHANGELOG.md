@@ -3,6 +3,7 @@
 ## [Unreleased]
 
 - Added enum types
+- Improved child node type mapping
 
 ## [0.2.0] - 2017-10-29
 
