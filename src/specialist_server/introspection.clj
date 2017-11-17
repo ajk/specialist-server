@@ -160,6 +160,9 @@
       ;;strip non-null type wrapper
       (if (= t/non-null-kind (:kind t)) (:ofType t) t))
 
+    (= 'clojure.spec.alpha/and (first v))
+    (some #(type %) (rest v))
+
     (= 'specialist-server.type/field (first v))
     (let [m (field-meta v)]
       (if (set? (second v))
@@ -181,8 +184,7 @@
         non-null)))
 
 (defmethod type :default [v]
-  (prn v)
-  (throw (Exception. "type: don't know how to proceed")))
+  nil)
 
 ;;;
 
@@ -250,8 +252,7 @@
      :deprecationReason (::t/deprecation-reason m)}))
 
 (defmethod field :default [v]
-  (prn v)
-  (throw (Exception. "field: don't know how to proceed")))
+  nil)
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

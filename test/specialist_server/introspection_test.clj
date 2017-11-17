@@ -32,6 +32,7 @@
 (s/def ::t-float t/float)
 (s/def ::f-float (t/field (s/nilable ::t-float) "Field of type Float"))
 
+(s/def ::compound (s/nilable (s/and ::t-string #"foo")))
 
 (s/def ::f-list (s/* ::f-int))
 
@@ -51,6 +52,7 @@
 ;;;
 
 #_(pprint (i/type ::f-list))
+#_(pprint (i/type ::compound))
 
 #_(pprint (keys (i/type-map {:query {:m #'m-resolver}})))
 
@@ -66,6 +68,8 @@
     (is (nil? (-> ::t-string i/type :name)))
     (is (= t/non-null-kind (-> ::t-string i/type :kind)))
     (is (= t/list-kind     (-> ::c-string i/type :kind)))
+
+    (is (= "String" (-> ::compound i/type :name)))
 
     (is (= "String"  (-> ::t-string i/type :ofType :name)))
     (is (= "Boolean" (-> ::n-bool i/type :name)))
