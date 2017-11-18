@@ -32,6 +32,7 @@
 (s/def ::t-float t/float)
 (s/def ::f-float (t/field (s/nilable ::t-float) "Field of type Float"))
 
+(s/def ::composite (s/nilable (s/and ::t-string #(re-find #"foo" %))))
 
 (s/def ::f-list (s/* ::f-int))
 
@@ -51,6 +52,9 @@
 ;;;
 
 #_(pprint (i/type ::f-list))
+#_(pprint (i/type ::composite))
+
+#_(pprint (s/conform ::composite "foofoo"))
 
 #_(pprint (keys (i/type-map {:query {:m #'m-resolver}})))
 
@@ -62,6 +66,7 @@
       (is (contains? t-map "String"))
       (is (contains? t-map "m-resolver"))
       (is (contains? t-map "my-enum"))))
+
   (testing "types"
     (is (nil? (-> ::t-string i/type :name)))
     (is (= t/non-null-kind (-> ::t-string i/type :kind)))
@@ -70,6 +75,8 @@
     (is (= "String"  (-> ::t-string i/type :ofType :name)))
     (is (= "Boolean" (-> ::n-bool i/type :name)))
     (is (= "String"  (-> ::c-string i/type :ofType :ofType :name)))
+
+    (is (= "String"  (-> ::composite i/type :name)))
 
     (is (= "Long" (-> #'i-resolver i/type :ofType :name)))
     (is (= "m-resolver" (-> #'m-resolver i/type :ofType :name)))

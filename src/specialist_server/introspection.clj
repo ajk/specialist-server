@@ -160,6 +160,9 @@
       ;;strip non-null type wrapper
       (if (= t/non-null-kind (:kind t)) (:ofType t) t))
 
+    (= 'clojure.spec.alpha/and (first v))
+    (some #(type %) (rest v))
+
     (= 'specialist-server.type/field (first v))
     (let [m (field-meta v)]
       (if (set? (second v))
