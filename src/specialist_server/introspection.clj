@@ -181,8 +181,7 @@
         non-null)))
 
 (defmethod type :default [v]
-  (prn v)
-  (throw (Exception. "type: don't know how to proceed")))
+  nil)
 
 ;;;
 
@@ -250,8 +249,7 @@
      :deprecationReason (::t/deprecation-reason m)}))
 
 (defmethod field :default [v]
-  (prn v)
-  (throw (Exception. "field: don't know how to proceed")))
+  nil)
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
