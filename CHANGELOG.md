@@ -11,6 +11,7 @@
 - Added basic Enum support to t/field
 - Introspection fixes
 - Added first version of batch-loader module
+- Added unform-fn argument to defscalar macro
 
 
 ## 0.1.0 - 2017-10-15

@@ -93,7 +93,7 @@
         c-args (spec/conform (or (:args fspec) (croak)) (vec args))
         type-name (-> fun-var meta :name str)
         conform (fn [res]
-                    (let [c-res (spec/conform (or (:ret fspec) (croak)) res)] ;TODO should be unform?
+                    (let [c-res (spec/unform (or (:ret fspec) (croak)) res)]
                       (cond
                         (= c-res ::spec/invalid)
                         (do
