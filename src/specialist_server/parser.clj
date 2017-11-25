@@ -142,13 +142,13 @@
     (let [fld (resolve-field false field-val-or-var arg-map root-val context info)]
       (if (:deferred? info) ; Allow for batch-loader to collect more nodes, return closure here and run later.
         (fn []
-          (selection-set-fn (if (fn? fld) (fld) fld) context (update info :path conj (:field-name arg-map))))
-        (selection-set-fn   (if (fn? fld) (fld) fld) context (update info :path conj (:field-name arg-map)))))
+          (selection-set-fn (if (fn? fld) (fld) fld) context info))
+        (selection-set-fn   (if (fn? fld) (fld) fld) context info)))
     (resolve-field true field-val-or-var arg-map root-val context info)))
 
 (defn- get-field [arg-map root-val context info]
   (if (contains? root-val (:field-name arg-map))
-    (resolve-field-selection (get root-val (:field-name arg-map)) arg-map root-val context info)
+    (resolve-field-selection (get root-val (:field-name arg-map)) arg-map root-val context (update info :path conj (:field-name arg-map)))
     (throw (IllegalArgumentException. (str "no such field: " (:field-name arg-map) " in " (pr-str root-val))))))
 
 (defn- field [& args]
@@ -165,14 +165,16 @@
 
 (defn- selection-set [& selections]
   {:selection-set (fn [node context info]
-                    (let [field-fn (partial sel-set-field (filter map? selections) context info)
+                    (let [field-fn (partial sel-set-field (filter map? selections) context)
                           parent (if (fn? node) (node) node)]
                       (if (nil? parent)
                         nil
                         (if (sequential? parent)
-                          (doall (map field-fn parent))
-                          (field-fn parent)))))})
+                          (doall (map (fn [i n] (field-fn (update info :path conj i) n))
+                                      (range 0 (count parent)) parent))
+                          (field-fn info parent)))))})
 ;;;
+
 
 ;TODO enforce type conditions?
 (defn- frag-spread [_ name]
