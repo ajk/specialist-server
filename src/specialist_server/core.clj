@@ -3,19 +3,41 @@
             [specialist-server.parser :as p]
             [specialist-server.introspection :as i]))
 
-;; If there are any unevaluated resolver functions, run them now
-(defn run-fns [node]
-  (if (fn? node) (node) node))
+
+(defn- deferred
+  "Run deferred resolver functions. Uses breadth-first traversal."
+  [data]
+  (letfn [(tuples [key-root data]
+            (if (map? data)
+              (map (fn [[k v]] [(conj key-root k) v]) data)
+              [[key-root data]]))]
+
+    (loop [data-queue [{} (tuples [] data)]]
+      (let [[out queue] data-queue]
+        (if (empty? queue)
+          out
+          (recur (reduce (fn [[coll q] [k node]]
+                           (let [v (if (fn? node) (node) node)]
+                             (cond
+                               (not (coll? v))
+                               [(assoc-in coll k v)
+                                q]
+
+                               (map? v)
+                               [(assoc-in coll k {})
+                                (into q (tuples k v))]
+
+                               :else
+                               [(assoc-in coll k [])
+                                (reduce into q (map #(tuples (conj k %1) %2) (range 0 (count v)) v))])))
+                         [out []]
+                         queue)))))))
 
 (defn- execute [query schema context info]
   (let [fun (p/parse query)]
     (try
       (if (:deferred? info)
-        (walk/prewalk
-          run-fns
-          (walk/postwalk
-            run-fns
-            (fun schema context info)))
+        (deferred (fun schema context info))
         (fun schema context info))
       (catch IllegalArgumentException ex
         (prn ex)

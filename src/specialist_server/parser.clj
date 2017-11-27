@@ -170,8 +170,8 @@
                       (if (nil? parent)
                         nil
                         (if (sequential? parent)
-                          (doall (map (fn [i n] (field-fn (update info :path conj i) n))
-                                      (range 0 (count parent)) parent))
+                          (mapv (fn [i n] (field-fn (update info :path conj i) n))
+                                (range 0 (count parent)) parent)
                           (field-fn info parent)))))})
 ;;;
 

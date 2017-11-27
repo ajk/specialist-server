@@ -162,4 +162,10 @@
       )
     )
 
+  (testing "deferred"
+    (let [q "{posts {id comments {id} author {posts {comments {id}}}}}"]
+      (is (=
+           (graphql {:deferred? true  :context {:req-cache (b/cache)} :query q})
+           (graphql {:deferred? false :context {:req-cache (b/cache)} :query q})))))
+
   )
