@@ -1,9 +1,26 @@
 (ns specialist-server.core-test
   (:require [clojure.test :refer :all]
+            [clojure.java.io :as io]
             [clojure.spec.alpha :as s]
             [clojure.pprint :refer [pprint]]
             [specialist-server.type :as t]
             [specialist-server.core :refer [executor]]))
+
+(def schema-query (-> "test/__schema.txt" io/resource slurp))
+
+(def counter-val (atom 0))
+
+(defn counter
+  "Get current counter value"
+  [node opt ctx info]
+  @counter-val)
+
+(defn inc-counter
+  "Basic example mutator"
+  [node opt ctx info]
+  (swap! counter-val inc))
+
+;;;
 
 (defn happy
   "See if our greeting is happy or not."
@@ -35,8 +52,15 @@
         :args (s/tuple map? (s/keys :opt-un [::name]) map? map?)
         :ret ::hello-node)
 
+(s/fdef counter     :args any? :ret t/int)
+(s/fdef inc-counter :args any? :ret t/int)
 
-(def graphql (executor {:query {:hello #'hello}}))
+
+(def graphql (executor {:query {:hello #'hello :counter #'counter}
+                        :mutation {:counter #'inc-counter}}))
+
+
+#_(pprint (graphql {:query schema-query}))
 
 ;;;
 
@@ -49,11 +73,17 @@
       (is (= "Hello meh" (:greeting res-meh)))
       (is (= false (:happy res-meh)))))
 
-  (testing "Queriy with a variable"
+  (testing "Query with a variable"
     (let [q {:query "query Hello($name:String) { hello(name:$name) { greeting }}"
              :variables {:name "Clojure!"}}
           res (-> q graphql :data :hello)]
       (is (= "Hello Clojure!" (:greeting res)))))
+
+  (testing "Mutations"
+    (is (= 0 (-> {:query "{counter}"} graphql :data :counter)))
+    (is (= 1 (-> {:query "mutation Counter {counter}"} graphql :data :counter)))
+    (is (= 2 (-> {:query "mutation Counter {counter}"} graphql :data :counter)))
+    (is (= 2 (-> {:query "{counter}"} graphql :data :counter))))
 
   (testing "Introspection"
     (is (= {:data

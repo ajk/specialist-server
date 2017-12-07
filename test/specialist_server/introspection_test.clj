@@ -48,7 +48,6 @@
         :args any?
         :ret ::m-node)
 
-
 ;;;
 
 #_(pprint (i/type ::f-list))
@@ -65,7 +64,9 @@
     (let [t-map (i/type-map {:query {:m #'m-resolver}})]
       (is (contains? t-map "String"))
       (is (contains? t-map "m-resolver"))
-      (is (contains? t-map "my-enum"))))
+      (is (contains? t-map "my-enum"))
+      (is (= {:m #'specialist-server.introspection-test/m-resolver}
+             (-> t-map (get "QueryType") :fields)))))
 
   (testing "types"
     (is (nil? (-> ::t-string i/type :name)))

@@ -108,7 +108,7 @@
 
 (defmethod type :var [v]
   (let [v-meta (meta v)
-        v-name (-> v-meta :name str)
+        v-name (get v-meta ::t/name (-> v-meta :name str))
         doc (:doc v-meta)
         ret (-> v get-spec rest even->map :ret)
         field-keys (ret-keys ret)]
@@ -277,16 +277,16 @@
   (assoc (->> schema
               vals
               (map vals)
-              (reduce concat [])
+              (reduce into [])
               (filter var?)
-              (concat t/built-in)
+              (into  t/built-in)
               (reduce field->types {}))
          "QueryType"
          (-> base-type
              (assoc :kind t/object-kind)
              (assoc :name "QueryType")
              (assoc :description "The type that query operations will be rooted at.")
-             (assoc :fields (-> schema :query vals))
+             (assoc :fields (:query schema))
              (assoc :interfaces []))
          "MutationType"
          (when (-> schema :mutation vals)
@@ -294,7 +294,7 @@
                (assoc :kind t/object-kind)
                (assoc :name "MutationType")
                (assoc :description "If this server supports mutation, the type that mutation operations will be rooted at.")
-               (assoc :fields (-> schema :mutation vals))
+               (assoc :fields (:mutation schema))
                (assoc :interfaces [])))
          "SubscriptionType"
          (when (-> schema :subscription vals)
@@ -302,7 +302,7 @@
                (assoc :kind t/object-kind)
                (assoc :name "SubscriptionType")
                (assoc :description "If this server support subscription, the type that subscription operations will be rooted at.")
-               (assoc :fields (-> schema :subscription vals))
+               (assoc :fields (:subscription schema))
                (assoc :interfaces [])))))
 
 ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ;
@@ -310,7 +310,12 @@
 
 (defn __fields
   [{type-name :name} {all? :includeDeprecated} _ info]
-  (let [field-list (map field (get-in info [:type-map type-name :fields]))]
+  (let [field-list (map (fn [v]
+                          (if (vector? v)
+                            ;; If we are looping over a map, use key as field name
+                            (-> v last field (assoc :name (-> v first name)))
+                            (field v)))
+                        (get-in info [:type-map type-name :fields]))]
     (if all?
       field-list
       (filter #(not (:isDeprecated %)) field-list))))

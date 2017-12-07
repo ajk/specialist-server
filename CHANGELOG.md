@@ -4,6 +4,7 @@
 
 - Added enum types
 - Improved child node type mapping
+- Fixed root type field names
 
 ## [0.2.0] - 2017-10-29
 
