@@ -73,7 +73,7 @@ Modify the project.clj file and add dependencies:
   :description "FIXME: write description"
   :url "http://example.com/FIXME"
   :min-lein-version "2.7.1"
-  :dependencies [[org.clojure/clojure "1.9.0-beta2"]
+  :dependencies [[org.clojure/clojure "1.9.0"]
                  [compojure "1.6.0"]
                  [ring/ring-defaults "0.3.1"]
                  [ring/ring-json "0.4.0"]
