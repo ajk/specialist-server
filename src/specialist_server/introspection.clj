@@ -2,6 +2,7 @@
   (:refer-clojure :exclude [type])
   (:require [clojure.spec.alpha :as s]
             [clojure.string :as string]
+            [clojure.walk :as walk]
             [specialist-server.type :as t]))
 
 ;TODO
@@ -93,7 +94,9 @@
                        :type default-type
                        :defaultValue nil) a-keys)] ;TODO support default values
     (map (fn [a b]
-           (if b (assoc a :description (:description b) :type (:type b)) a))
+           (if b
+             (assoc a :description (:description b) :type (:type b))
+             a))
          a-list (map field a-keys))))
 
 (defmulti type (fn [v]
@@ -162,6 +165,15 @@
 
     (= 'clojure.spec.alpha/and (first v))
     (some #(type %) (rest v))
+
+    ;; Currently only used in input types
+    (= 'clojure.spec.alpha/keys (first v))
+    (-> base-type
+        (dissoc :fields)
+        (assoc :kind t/input-object-kind)
+        (assoc :name (string/replace (str "InputObject" (hash v)) "-" "_")) ; We don't have a proper type name so generate one.
+        (assoc :inputFields (ret-keys v)) ; Just the keys, break infinite type -> fields -> type loops
+        non-null)
 
     (= 'specialist-server.type/field (first v))
     (let [m (field-meta v)]
@@ -257,6 +269,7 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+
 (defn- call-fn [f]
   (if (fn? f) (f) f))
 
@@ -310,25 +323,37 @@
 
 (defn __fields
   [{type-name :name} {all? :includeDeprecated} _ info]
-  (let [field-list (map (fn [v]
-                          (if (vector? v)
-                            ;; If we are looping over a map, use key as field name
-                            (-> v last field (assoc :name (-> v first name)))
-                            (field v)))
-                        (get-in info [:type-map type-name :fields]))]
+  (let [parent (get-in info [:type-map type-name])
+        field-list (if (= t/input-object-kind (:kind parent)) (:inputFields parent) (:fields parent))
+        out-list (map (fn [v]
+                        (assoc (if (vector? v)
+                                 ;; If we are looping over a map, use key as field name
+                                 (-> v last field (assoc :name (-> v first name)))
+                                 (field v))
+                               :defaultValue nil)) ;TODO support default values on inputValues
+                        field-list)]
     (if all?
-      field-list
-      (filter #(not (:isDeprecated %)) field-list))))
+      out-list
+      (filter #(not (:isDeprecated %)) out-list))))
+
+
+(defn- with-field-resolver
+  "Adds field resolver ref to type map v"
+  [v]
+  (if (= t/input-object-kind (:kind v))
+    (assoc v :inputFields #'__fields :fields nil)
+    (assoc v :fields      #'__fields :inputFields nil)))
+
 
 (defn __schema
   "A GraphQL Schema defines the capabilities of a GraphQL server. It exposes
   all available types and directives on the server, as well as the entry points
   for query, mutation, and subscription operations."
   [_ _ _ info]
-  {:types (map #(assoc % :fields #'__fields)  (->> info :type-map vals (remove nil?)))
-   :queryType        (-> info (get-in [:type-map "QueryType"])        (assoc :fields #'__fields))
-   :mutationType     (some-> info (get-in [:type-map "MutationType"])     (assoc :fields #'__fields))
-   :subscriptionType (some-> info (get-in [:type-map "SubscriptionType"]) (assoc :fields #'__fields))
+  {:types (map with-field-resolver  (->> info :type-map vals (remove nil?)))
+   :queryType        (-> info (get-in [:type-map "QueryType"])            with-field-resolver)
+   :mutationType     (some-> info (get-in [:type-map "MutationType"])     with-field-resolver)
+   :subscriptionType (some-> info (get-in [:type-map "SubscriptionType"]) with-field-resolver)
    :directives []}) ;TODO add directives
 
 
@@ -343,17 +368,16 @@
   types, Union and Interface, provide the Object types possible
   at runtime. List and NonNull types compose other types"
   [_ {name :name} _ info]
-  (some-> info
-      (get-in [:type-map name])
-      (assoc :fields #'__fields)))
+  (if-let [v (get-in info [:type-map name])]
+    (with-field-resolver v)))
 
 ;;;
 
 (s/def ::name (s/nilable t/string))
 
-(s/def ::type (s/keys :req-un [::kind ::name ::description ::fields ::interfaces ::possibleTypes ::enumValues ::inputFields ::ofType]))
+(s/def ::type (s/keys :req-un [::kind ::name ::description ::fields ::inputFields ::interfaces ::possibleTypes ::enumValues ::inputFields ::ofType]))
 
-(s/def ::field-node (s/keys :req-un [::name ::description ::args ::type ::isDeprecated ::deprecationReason]))
+(s/def ::field-node (s/keys :req-un [::name ::description ::args ::type ::isDeprecated ::deprecationReason ::defaultValue]))
 
 (s/def ::types (s/* ::type))
 

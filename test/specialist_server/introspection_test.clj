@@ -38,6 +38,8 @@
 
 (s/def ::i-resolver (t/resolver #'i-resolver))
 
+(s/def ::input-obj (s/keys :req-un [::t-string]))
+
 (s/fdef i-resolver
         :args (s/tuple map? (s/keys :req-un [::f-nil-int ::t-undef] :opt-un [::f-enum]) map? map?)
         :ret t/long)
@@ -45,8 +47,10 @@
 (s/def ::m-node (s/keys :req-un [::i-resolver ::f-int ::missing ::f-enum-2]))
 
 (s/fdef m-resolver
-        :args any?
+        :args (s/tuple map? (s/keys :req-un [::input-obj]) map? map?)
         :ret ::m-node)
+
+
 
 ;;;
 
@@ -56,6 +60,8 @@
 #_(pprint (s/conform ::composite "foofoo"))
 
 #_(pprint (keys (i/type-map {:query {:m #'m-resolver}})))
+
+#_(pprint (i/field #'m-resolver))
 
 ;;;
 
@@ -97,4 +103,11 @@
 
     (is (= "missing" (-> ::missing i/field :name)))
     (is (= "String"  (-> ::missing i/field :type :name))))
+
+  (testing "input-object"
+    (let [t-map (i/type-map {:query {:m #'m-resolver}})
+          inp-type (-> #'m-resolver i/field :args first :type :ofType)]
+      (is (contains? t-map (:name inp-type)))
+      (is (= t/input-object-kind (:kind inp-type)))))
+
   )
