@@ -51,6 +51,10 @@
   ([v-name _ v-type v-default]
    {v-name {:type v-type :default v-default}}))
 
+;(:type (:typeName "Int") (:nonNullType "!")))
+(defn- type-def [& args]
+  (apply str args))
+
 ;(:variableDefinitions "(" (:variableDefinition (:variable "$" "x") ":" (:type (:typeName "String")) (:defaultValue "=" (:value "\"X string\""))) ")")
 ;(:variableDefinitions "(" (:variableDefinition (:variable "$" "x") ":" (:type (:typeName "String"))) ")")
 (defn- variable-defs [& v-defs]
@@ -237,6 +241,7 @@
    :field field
    :selection selection
    :selectionSet selection-set
+   :type type-def
    :variableDefinition  variable-def
    :variableDefinitions variable-defs
    :defaultValue default-value
