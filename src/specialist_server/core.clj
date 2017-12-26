@@ -1,5 +1,6 @@
 (ns specialist-server.core
   (:require [clojure.walk :as walk]
+            [clojure.pprint :refer [pprint]]
             [specialist-server.parser :as p]
             [specialist-server.introspection :as i]))
 
@@ -34,14 +35,22 @@
                          queue)))))))
 
 (defn- execute [query schema context info]
-  (let [fun (p/parse query)]
-    (try
+  (try
+    (let [fun (p/parse query)]
       (if (:deferred? info)
         (deferred (fun schema context info))
-        (fun schema context info))
-      (catch IllegalArgumentException ex
-        (prn ex)
-        {:errors [{:message (.getMessage ex)}]}))))
+        (fun schema context info)))
+    (catch clojure.lang.ExceptionInfo ex
+      (.write *out*
+              (with-out-str
+                (println (:id info) ">>>")
+                (println (.getMessage ex))
+                (pprint (ex-data ex))
+                (println "<<<" (:id info))
+                ))
+      (when *flush-on-newline* (flush))
+      {:errors [{:message (.getMessage ex)
+                 :query_id (:id info)}]})))
 
 (defn executor [schema]
   (let [type-map (i/type-map schema)

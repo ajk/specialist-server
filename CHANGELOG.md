@@ -6,6 +6,8 @@
 - Improved child node type mapping
 - Fixed root type field names
 - Added input object types
+- Improved error messages
+- Fixed variable type parsing
 
 ## [0.2.0] - 2017-10-29
 

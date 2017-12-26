@@ -97,17 +97,17 @@
         c-args (spec/conform (or (:args fspec) (croak)) (vec args))
         type-name (-> fun-var meta :name str)
         conform (fn [res]
-                    (let [c-res (spec/unform (or (:ret fspec) (croak)) res)]
+                    (let [c-res (spec/conform (or (:ret fspec) (croak)) res)]
                       (cond
                         (= c-res ::spec/invalid)
-                        (do
-                          (println (spec/explain (:ret fspec) res)) ;DEBUG
-                          (throw (ex-info (str "failed to conform return value for " fun-var) (spec/explain-data (:ret fspec) res))))
+                        (throw (ex-info (str "failed to conform return value for " fun-var)
+                                        (select-keys (spec/explain-data (:ret fspec) res) [::spec/problems])))
 
                         (and scalar? (or (map? c-res) (and (coll? c-res) (-> c-res first map?))))
-                        (throw (IllegalArgumentException.
+                        (throw (ex-info
                                  (str "invalid query on " type-name ": "
-                                      "the resolver returned a map or list but a scalar value was queried.")))
+                                      "the resolver returned a map or list but a scalar value was queried.")
+                                 (select-keys (last args) [:path])))
 
                         (map? c-res)
                         (assoc c-res :__typename type-name)
@@ -118,7 +118,8 @@
                         :else c-res)))]
 
     (if (= c-args ::spec/invalid)
-      (throw (ex-info (str "failed to conform arguments for " fun-var) (spec/explain-data (:args fspec) (vec args))))
+      (throw (ex-info (str "failed to conform arguments for " fun-var)
+                      (select-keys (spec/explain-data (:args fspec) (vec args)) [::spec/problems])))
       (let [res (apply (deref fun-var) c-args)]
         (if (-> args last :deferred?) ; Allow for batch-loader to collect more nodes, return closure here and run later.
           (fn []
@@ -153,7 +154,7 @@
 (defn- get-field [arg-map root-val context info]
   (if (contains? root-val (:field-name arg-map))
     (resolve-field-selection (get root-val (:field-name arg-map)) arg-map root-val context (update info :path conj (:field-name arg-map)))
-    (throw (IllegalArgumentException. (str "no such field: " (:field-name arg-map) " in " (pr-str root-val))))))
+    (throw (ex-info (str "Parse error: no such field " (:field-name arg-map) " in " (pr-str (:path info))) {}))))
 
 (defn- field [& args]
  (apply merge-with (cons merge args)))
@@ -185,7 +186,7 @@
   {:selection-set (fn [node context info]
                     (if-let [frag (get-in info [:fragments name])]
                       ((:selection-set frag) node context info)
-                      (throw (IllegalArgumentException. (str "no such fragment: " name)))))})
+                      (throw (ex-info (str "Parse error: no such fragment " name) {}))))})
 
 (def ^:private frag-name identity)
 
@@ -270,4 +271,4 @@
         ;; Try to parse in two passes in order to work around reserved words in bad places.
         (->> q-str graphql-two-step (walk/postwalk apply-ops))
         (catch clj_antlr.ParseError ex
-          (throw (IllegalArgumentException. (str "Parse error: " (.getMessage ex)))))))))
+          (throw (ex-info (str "Parse error: " (.getMessage ex)) {:exception @ex})))))))
