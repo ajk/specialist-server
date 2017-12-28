@@ -96,26 +96,25 @@
         fspec (or (spec/get-spec fun-var) (croak))
         c-args (spec/conform (or (:args fspec) (croak)) (vec args))
         type-name (-> fun-var meta :name str)
-        conform (fn [res]
-                    (let [c-res (spec/conform (or (:ret fspec) (croak)) res)]
-                      (cond
-                        (= c-res ::spec/invalid)
-                        (throw (ex-info (str "failed to conform return value for " fun-var)
-                                        (select-keys (spec/explain-data (:ret fspec) res) [::spec/problems])))
+        valid-res (fn [res]
+                    (cond
+                      (not (spec/valid? (or (:ret fspec) (croak)) res))
+                      (throw (ex-info (str "failed to validate return value for " fun-var)
+                                      (select-keys (spec/explain-data (:ret fspec) res) [::spec/problems])))
 
-                        (and scalar? (or (map? c-res) (and (coll? c-res) (-> c-res first map?))))
-                        (throw (ex-info
-                                 (str "invalid query on " type-name ": "
-                                      "the resolver returned a map or list but a scalar value was queried.")
-                                 (select-keys (last args) [:path])))
+                      (and scalar? (or (map? res) (and (coll? res) (-> res first map?))))
+                      (throw (ex-info
+                               (str "invalid query on " type-name ": "
+                                    "the resolver returned a map or list but a scalar value was queried.")
+                               (select-keys (last args) [:path])))
 
-                        (map? c-res)
-                        (assoc c-res :__typename type-name)
+                      (map? res)
+                      (assoc res :__typename type-name)
 
-                        (and (coll? c-res) (-> c-res first map?))
-                        (map #(assoc % :__typename type-name) c-res)
+                      (and (coll? res) (-> res first map?))
+                      (map #(assoc % :__typename type-name) res)
 
-                        :else c-res)))]
+                      :else res))]
 
     (if (= c-args ::spec/invalid)
       (throw (ex-info (str "failed to conform arguments for " fun-var)
@@ -123,8 +122,8 @@
       (let [res (apply (deref fun-var) c-args)]
         (if (-> args last :deferred?) ; Allow for batch-loader to collect more nodes, return closure here and run later.
           (fn []
-            (conform (if (fn? res) (res) res)))
-          (conform   (if (fn? res) (res) res)))))))
+            (valid-res (if (fn? res) (res) res)))
+          (valid-res (if (fn? res) (res) res)))))))
 
 (defn field-args [arg-map info]
   (reduce-kv

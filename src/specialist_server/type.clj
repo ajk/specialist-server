@@ -15,10 +15,9 @@
 (def non-null-kind "NON_NULL")
 
 
-;;TODO write docs for conformer/unformer usage
 (defmacro defscalar
   "Defines new scalar types."
-  [type-name type-meta & [conform-fn unform-fn]]
+  [type-name type-meta conform-fn]
   (let [meta-map (if (map? type-meta) type-meta {:name (name type-name) :description type-meta})]
     `(def ~(vary-meta type-name
                       assoc
@@ -26,7 +25,7 @@
                       :specialist-server.type/kind scalar-kind
                       :specialist-server.type/type-description (:description meta-map)
                       :specialist-server.type/field-description "Self descriptive.")
-       (vary-meta (s/conformer ~conform-fn ~(or unform-fn conform-fn))
+       (vary-meta (s/conformer ~conform-fn)
                   assoc
                   :specialist-server.type/name ~(:name meta-map)
                   :specialist-server.type/kind ~scalar-kind
@@ -145,16 +144,15 @@
   ([we-have] (resolver we-have "Self descriptive."))
   ([we-have doc] (resolver we-have doc {}))
   ([we-have doc opt]
-   (let [fun (fn [they-sent]
-               (if (and (var? they-sent) (= we-have they-sent))
-                 they-sent
-                 ::s/invalid))]
-     (vary-meta
-       (s/conformer fun fun)
-       assoc ::t/var we-have
-             ::t/field-description doc
-             ::t/is-deprecated (clojure.core/boolean (:deprecated opt))
-             ::t/deprecation-reason (:deprecated opt)))))
+   (vary-meta
+     (s/conformer (fn [they-sent]
+                    (if (and (var? they-sent) (= we-have they-sent))
+                      they-sent
+                      ::s/invalid)))
+     assoc ::t/var we-have
+           ::t/field-description doc
+           ::t/is-deprecated (clojure.core/boolean (:deprecated opt))
+           ::t/deprecation-reason (:deprecated opt))))
 
 ;;;
 
