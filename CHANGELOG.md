@@ -1,6 +1,6 @@
 # Change Log
 
-## [Unreleased]
+## [0.3.0] - 2017-12-30
 
 - Added enum types
 - Improved child node type mapping
@@ -22,5 +22,6 @@
 
 - Initial release
 
-[Unreleased]: https://github.com/ajk/specialist-server/compare/0.2.0...HEAD
+[Unreleased]: https://github.com/ajk/specialist-server/compare/0.3.0...HEAD
+[0.3.0]: https://github.com/ajk/specialist-server/compare/0.2.0...0.3.0
 [0.2.0]: https://github.com/ajk/specialist-server/compare/0.1.0...0.2.0
