@@ -52,7 +52,7 @@
       {:errors [{:message (.getMessage ex)
                  :query_id (:id info)}]})))
 
-(defn executor [schema]
+(defn server [schema]
   (let [type-map (i/type-map schema)
         ; Internal schema map: add introspection fields.
         inner-schema (-> schema
@@ -66,3 +66,8 @@
                   :root-value (or root {})
                   :deferred? (boolean deferred?)}]
         (execute query inner-schema (or context {}) info)))))
+
+(defn executor
+  "Alias for specialist-server.core/server"
+  [schema]
+  (server schema))
