@@ -31,6 +31,10 @@
 
 ;;;
 
+(defn name-str [v]
+  (when-not (nil? v) 
+    (string/replace (name v) "-" "_")))
+
 (defn even->map [coll]
   (if-not (-> coll count even?)
     (throw (IllegalArgumentException. "even->map: input list must have even count")))
@@ -89,7 +93,7 @@
 (defn args [v]
   (let [a-keys (arg-keys v)
         a-list (map #(hash-map
-                       :name (name %)
+                       :name (name-str %)
                        :description nil
                        :type default-type
                        :defaultValue nil) a-keys)] ;TODO support default values
@@ -118,7 +122,7 @@
     (if field-keys
       (-> base-type
           (assoc :kind t/object-kind)
-          (assoc :name v-name)
+          (assoc :name (name-str v-name))
           (assoc :description doc)
           (assoc :fields field-keys) ;just the keys, break infinite type -> fields -> type loops
           (assoc :interfaces [])
@@ -181,7 +185,7 @@
         (type (second v))
         (-> base-type
             (assoc :kind (::t/kind m))
-            (assoc :name (::t/name m))
+            (assoc :name (name-str (::t/name m)))
             (assoc :description (::t/type-description m))
             non-null)))))
 
@@ -191,7 +195,7 @@
     (type (::t/var v))
     (-> base-type
         (assoc :kind (::t/kind v))
-        (assoc :name (::t/name v))
+        (assoc :name (name-str (::t/name v)))
         (assoc :description (get v ::t/type-description (:doc v)))
         non-null)))
 
@@ -211,7 +215,7 @@
         v-name (-> v-meta :name str)
         doc (:doc v-meta)
         depr (:deprecated v-meta)]
-    {:name v-name
+    {:name (name-str v-name)
      :description doc
      :args (args v)
      :type (type v)
@@ -223,7 +227,7 @@
         m (or (meta spec) (some-> spec s/form field-meta))]
     (cond
       (nil? spec) ;no spec for kw => default field
-      {:name (name v)
+      {:name (name-str v)
        :description nil
        :args []
        :type default-type
@@ -238,14 +242,14 @@
           (assoc :deprecationReason (::t/deprecation-reason m)))
 
       (::t/field-description m)
-      {:name (name v)
+      {:name (name-str v)
        :description (::t/field-description m)
        :args []
        :type (type v)
        :isDeprecated (boolean (::t/is-deprecated m))
        :deprecationReason (::t/deprecation-reason m)}
 
-      :else (some-> spec s/form field (assoc :name (name v))))))
+      :else (some-> spec s/form field (assoc :name (name-str v))))))
 
 
 
@@ -256,7 +260,7 @@
                     (= 'specialist-server.type/field (first v)) (eval v)
                     :else (recur (second v))))
         m (meta v-field)]
-    {:name (::t/field-name m)
+    {:name (name-str (::t/field-name m))
      :description (::t/field-description m)
      :args []
      :type (type v-list)

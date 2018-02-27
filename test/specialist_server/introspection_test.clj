@@ -69,8 +69,8 @@
   (testing "type-map"
     (let [t-map (i/type-map {:query {:m #'m-resolver}})]
       (is (contains? t-map "String"))
-      (is (contains? t-map "m-resolver"))
-      (is (contains? t-map "my-enum"))
+      (is (contains? t-map "m_resolver"))
+      (is (contains? t-map "my_enum"))
       (is (= {:m #'specialist-server.introspection-test/m-resolver}
              (-> t-map (get "QueryType") :fields)))))
 
@@ -86,20 +86,20 @@
     (is (= "String"  (-> ::composite i/type :name)))
 
     (is (= "Long" (-> #'i-resolver i/type :ofType :name)))
-    (is (= "m-resolver" (-> #'m-resolver i/type :ofType :name)))
+    (is (= "m_resolver" (-> #'m-resolver i/type :ofType :name)))
 
     (is (set? my-enum))
     (is (= t/enum-kind (-> my-enum i/type :ofType :kind)))
     (is (= "new enum type" (-> my-enum i/type :ofType :description))))
 
   (testing "fields"
-    (is (= "f-enum" (-> ::f-enum i/field :name)))
+    (is (= "f_enum" (-> ::f-enum i/field :name)))
     (is (= "My ABCs" (-> ::f-enum i/field :description)))
     (is (= t/enum-kind (-> ::f-enum i/field :type :ofType :kind)))
     (is (= '(::i-resolver ::f-int ::missing ::f-enum-2) (-> #'m-resolver i/type :ofType :fields)))
 
     (is (= t/enum-kind (-> ::f-enum-2 i/field :type :ofType :kind)))
-    (is (= "my-enum" (-> ::f-enum-2 i/field :type :ofType :name)))
+    (is (= "my_enum" (-> ::f-enum-2 i/field :type :ofType :name)))
 
     (is (= "missing" (-> ::missing i/field :name)))
     (is (= "String"  (-> ::missing i/field :type :name))))
