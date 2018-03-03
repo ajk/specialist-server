@@ -72,7 +72,7 @@
         "represent free-form human-readable text.")}
   (fn [v]
     (cond
-      (nil? v) nil
+      (nil? v)  ::s/invalid
       (coll? v) ::s/invalid
       :else (str v))))
 
