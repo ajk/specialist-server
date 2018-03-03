@@ -122,12 +122,12 @@ Now you're thinking with graphs!
 
 # Status
 
-Very much in alpha. You can expect breaking changes.
+Clojure spec is still in alpha and so is this. I don't think there will be any breaking changes but anything's possible.
 
 A good part of the GraphQL specification is done and we'll deal with the missing chunks next. Type introspection more or less works but I'm sure you can find interesting ways to break it.
 
 # License
 
-Copyright 2017 Antti Koskinen
+Copyright 2017-2018 Antti Koskinen
 
 Distributed under the Eclipse Public License, the same as Clojure.
