@@ -1,5 +1,11 @@
 # Change Log
 
+## [Unreleased]
+
+- Renamed core/executor -> core/server
+- Introspection fixes
+- String type nil handling
+
 ## [0.3.0] - 2017-12-30
 
 - Added enum types
