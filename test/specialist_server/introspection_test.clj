@@ -46,8 +46,10 @@
 
 (s/def ::m-node (s/keys :req-un [::i-resolver ::f-int ::missing ::f-enum-2]))
 
+(s/def ::m-args (s/tuple map? (s/keys :req-un [::input-obj]) map? map?))
+
 (s/fdef m-resolver
-        :args (s/tuple map? (s/keys :req-un [::input-obj]) map? map?)
+        :args ::m-args
         :ret ::m-node)
 
 

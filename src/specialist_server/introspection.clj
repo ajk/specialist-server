@@ -86,7 +86,8 @@
 ;     Also, make opt-un keys nilable.
 (defn arg-keys [v]
   (when (var? v)
-    (let [a (some-> v s/get-spec s/form rest even->map :args)]
+    (let [v-args (some-> v s/get-spec s/form rest even->map :args)
+          a (if (keyword? v-args) (get-spec v-args) v-args)]
       (if (and (seq? a) (= 'clojure.spec.alpha/tuple (first a)))
         (->> a rest second ret-keys)))))
 
