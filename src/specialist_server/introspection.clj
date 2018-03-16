@@ -104,6 +104,19 @@
              a))
          a-list (map field a-keys))))
 
+(defn wrap-type [v wrap]
+  (let [flat-wrap (-> wrap flatten butlast reverse)]
+    (reduce (fn [t w]
+              (cond
+                (coll-type? w) (-> base-type
+                                   (assoc :kind t/list-kind)
+                                   (assoc :ofType t)
+                                   non-null)
+                (= 'clojure.spec.alpha/nilable w)
+                (if (= t/non-null-kind (:kind t)) (:ofType t) t)
+                :else t))
+            v flat-wrap)))
+
 (defmulti type (fn [v]
                  (cond
                    (var? v)     :var
@@ -127,7 +140,8 @@
           (assoc :description doc)
           (assoc :fields field-keys) ;just the keys, break infinite type -> fields -> type loops
           (assoc :interfaces [])
-          non-null)
+          non-null
+          (wrap-type ret))
       (type ret))))
 
 (defmethod type :kw [v]

@@ -50,7 +50,7 @@
 
 (s/fdef m-resolver
         :args ::m-args
-        :ret ::m-node)
+        :ret (s/nilable (s/* ::m-node)))
 
 
 
@@ -88,7 +88,8 @@
     (is (= "String"  (-> ::composite i/type :name)))
 
     (is (= "Long" (-> #'i-resolver i/type :ofType :name)))
-    (is (= "m_resolver" (-> #'m-resolver i/type :ofType :name)))
+    (is (= t/list-kind (-> #'m-resolver i/type :kind)))
+    (is (= "m_resolver" (-> #'m-resolver i/type :ofType :ofType :name)))
 
     (is (set? my-enum))
     (is (= t/enum-kind (-> my-enum i/type :ofType :kind)))
@@ -98,7 +99,7 @@
     (is (= "f_enum" (-> ::f-enum i/field :name)))
     (is (= "My ABCs" (-> ::f-enum i/field :description)))
     (is (= t/enum-kind (-> ::f-enum i/field :type :ofType :kind)))
-    (is (= '(::i-resolver ::f-int ::missing ::f-enum-2) (-> #'m-resolver i/type :ofType :fields)))
+    (is (= '(::i-resolver ::f-int ::missing ::f-enum-2) (-> #'m-resolver i/type :ofType :ofType :fields)))
 
     (is (= t/enum-kind (-> ::f-enum-2 i/field :type :ofType :kind)))
     (is (= "my_enum" (-> ::f-enum-2 i/field :type :ofType :name)))
