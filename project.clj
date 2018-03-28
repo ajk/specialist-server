@@ -1,4 +1,4 @@
-(defproject ajk/specialist-server "0.4.0-SNAPSHOT"
+(defproject ajk/specialist-server "0.4.0"
   :description "Spec-driven Clojure GraphQL server"
   :url "https://github.com/ajk/specialist-server"
   :license {:name "Eclipse Public License"
