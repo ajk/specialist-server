@@ -4,7 +4,7 @@
             [clojure.spec.alpha :as s]
             [clojure.pprint :refer [pprint]]
             [specialist-server.type :as t]
-            [specialist-server.core :refer [executor]]))
+            [specialist-server.core :refer [server execute-b]]))
 
 (def schema-query (-> "test/__schema.txt" io/resource slurp))
 
@@ -55,12 +55,24 @@
 (s/fdef counter     :args any? :ret t/int)
 (s/fdef inc-counter :args any? :ret t/int)
 
+(def schema {:query {:hello #'hello
+                     :counter #'counter}
+             :mutation {:counter #'inc-counter}})
 
-(def graphql (executor {:query {:hello #'hello :counter #'counter}
-                        :mutation {:counter #'inc-counter}}))
+(def graphql (server schema))
 
 
 #_(pprint (graphql {:query schema-query}))
+
+#_(let [query "{hello {greeting}}"
+        op-name nil
+        context {}
+        info {:id (str (java.util.UUID/randomUUID))
+              :schema schema
+              :type-map {}
+              :variable-values {}
+              :root-value {}}]
+    (pprint (execute-b query op-name context info)))
 
 ;;;
 

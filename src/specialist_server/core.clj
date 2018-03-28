@@ -2,8 +2,20 @@
   (:require [clojure.walk :as walk]
             [clojure.pprint :refer [pprint]]
             [specialist-server.parser :as p]
+            [specialist-server.parserb :as pb]
+            [specialist-server.resolver :as r]
             [specialist-server.introspection :as i]))
 
+
+;;;DEBUG helper fn
+(defn execute-b [query op-name context info]
+  (if (nil? op-name)
+    (-> query pb/parse vals first (r/run context info))
+    (if-let [op (-> query pb/parse (get op-name))]
+      (r/run op context info)
+      (throw (ex-info (str "Query error: no such operation") {:name op-name})))))
+
+;;;
 
 (defn- deferred
   "Run deferred resolver functions. Uses breadth-first traversal."
@@ -62,7 +74,7 @@
       (let [info {:id (str (java.util.UUID/randomUUID))
                   :schema schema
                   :type-map type-map
-                  :variable-values (reduce-kv (fn [m k v] (assoc m (keyword k) v )) {} variables)
+                  :variable-values (or variables {}) ;(reduce-kv (fn [m k v] (assoc m (keyword k) v )) {} variables)
                   :root-value (or root {})
                   :deferred? (boolean deferred?)}]
         (execute query inner-schema (or context {}) info)))))

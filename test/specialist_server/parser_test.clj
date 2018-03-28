@@ -1,7 +1,9 @@
 (ns specialist-server.parser-test
   (:require [clojure.test :refer :all]
             [clojure.java.io :as io]
-            [specialist-server.parser :as p]))
+            [clojure.pprint :refer [pprint]]
+            [specialist-server.parser :as p]
+            [specialist-server.parserb :as pb]))
 
 (def query  (-> "test/__schema.txt" io/resource slurp))
 (def result (-> "test/__schema.edn" io/resource slurp read-string))
@@ -15,6 +17,13 @@
       query
     }
   }")
+
+
+#_(pprint (pb/parse "query Foo($a: String!=\"?\") {foo(a:1) {bar baz(b:2)} foo2 {bar2 baz2}}"))
+
+#_(pprint (pb/parse "query Foo { foo {bar {...Frag} baz} } query Bar {bar ...Frag } fragment Frag on bar {quux quux2}"))
+
+#_(pprint (pb/parse query))
 
 ;;;
 
