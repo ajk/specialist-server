@@ -4,7 +4,7 @@
             [clojure.spec.alpha :as s]
             [clojure.pprint :refer [pprint]]
             [specialist-server.type :as t]
-            [specialist-server.core :refer [server execute-b]]))
+            [specialist-server.core :refer [server]]))
 
 (def schema-query (-> "test/__schema.txt" io/resource slurp))
 
@@ -72,7 +72,7 @@
               :type-map {}
               :variable-values {}
               :root-value {}}]
-    (pprint (execute-b query op-name context info)))
+    (pprint (execute query op-name context info)))
 
 ;;;
 

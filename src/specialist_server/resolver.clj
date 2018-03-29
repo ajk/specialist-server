@@ -77,11 +77,11 @@
                                 (throw (ex-info (str "Parse error: no such field " in-name " in " (pr-str key-root)) {}))))
                             sel-set))]
 
-    (loop [out-queue [{}
+    (loop [out-queue [{:data {}}
                       (transient
                         (mapv (fn [[[in-name out-name] args children]]
                                 (if-let [node (get-in schema [op in-name])]
-                                  (list [out-name]
+                                  (list [:data out-name]
                                         (resolve-field (empty? children)
                                                        node
                                                        root-value

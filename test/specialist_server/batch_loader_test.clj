@@ -5,7 +5,7 @@
             [clojure.pprint :refer [pprint]]
             [specialist-server.type :as t]
             [specialist-server.batch-loader :as b]
-            [specialist-server.core :refer [executor]]))
+            [specialist-server.core :refer [server]]))
 
 (declare author)
 (declare posts)
@@ -128,9 +128,9 @@
 
 ;;;
 
-(def graphql (executor {:query {:post   #'post
-                                :posts  #'posts
-                                :author #'author}}))
+(def graphql (server {:query {:post   #'post
+                              :posts  #'posts
+                              :author #'author}}))
 
 #_(reset! query-counter 0)
 
@@ -148,6 +148,12 @@
 
 #_(pprint (graphql {:deferred? true :context {:req-cache (b/cache)} :query "{posts {id comments {id} author {posts {comments {id}}}}}" }))
 
+
+#_(time (dotimes [_ 2000]
+          (graphql {:context {:req-cache (b/cache)}
+                    :query "{posts {id comments {id} author {posts {comments {id}}}}}"})))
+
+
 #_(deref query-counter)
 
 ;;;
@@ -156,13 +162,13 @@
   (testing "load comments"
     (reset! query-counter 0)
     (let [res (graphql
-                {:deferred? true :context {:req-cache (b/cache)}
+                {:context {:req-cache (b/cache)}
                  :query "{posts {id comments {id}}}" })]
       (is (= 2 @query-counter))
       )
     )
 
-  (testing "deferred"
+  #_(testing "deferred"
     (let [q "{posts {id comments {id} author {posts {comments {id}}}}}"]
       (is (=
            (graphql {:deferred? true  :context {:req-cache (b/cache)} :query q})
