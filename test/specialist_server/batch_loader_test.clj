@@ -5,7 +5,7 @@
             [clojure.pprint :refer [pprint]]
             [specialist-server.type :as t]
             [specialist-server.batch-loader :as b]
-            [specialist-server.core :refer [executor]]))
+            [specialist-server.core :refer [server]]))
 
 (declare author)
 (declare posts)
@@ -128,44 +128,109 @@
 
 ;;;
 
-(def graphql (executor {:query {:post   #'post
-                                :posts  #'posts
-                                :author #'author}}))
-
-#_(reset! query-counter 0)
-
-#_(pprint (graphql
-            {:deferred? true :context {:req-cache (b/cache)}
-             :query "{post(id:2) {__typename id title author {name} comments {text}}}" }))
-
-#_(pprint (graphql
-            {:deferred? true :context {:req-cache (b/cache)}
-             :query "{posts {id title likes author {name}}}" }))
-
-#_(pprint (graphql
-            {:deferred? true :context {:req-cache (b/cache)}
-             :query "{author(id:1) { posts {title comments {id text email}}}}" }))
-
-#_(pprint (graphql {:deferred? true :context {:req-cache (b/cache)} :query "{posts {id comments {id} author {posts {comments {id}}}}}" }))
-
-#_(deref query-counter)
+(def graphql (server {:query {:post   #'post
+                              :posts  #'posts
+                              :author #'author}}))
 
 ;;;
 
 (deftest batch-loader
-  (testing "load comments"
+  (testing "query count"
     (reset! query-counter 0)
     (let [res (graphql
-                {:deferred? true :context {:req-cache (b/cache)}
+                {:context {:req-cache (b/cache)}
                  :query "{posts {id comments {id}}}" })]
-      (is (= 2 @query-counter))
-      )
-    )
+      (is (= 2 @query-counter))))
 
-  (testing "deferred"
-    (let [q "{posts {id comments {id} author {posts {comments {id}}}}}"]
-      (is (=
-           (graphql {:deferred? true  :context {:req-cache (b/cache)} :query q})
-           (graphql {:deferred? false :context {:req-cache (b/cache)} :query q})))))
+  (testing "sample data 1"
+    (is (= {:data
+            {:post
+             {:__typename "post",
+              :id 2,
+              :title "Omnes veniam no per",
+              :author {:name "Carey Baltes"},
+              :comments
+              [{:text
+                "Vim id fugit tation platonem, mei eu abhorreant consequuntur, te est esse latine."}]}}}
+           (graphql
+             {:context {:req-cache (b/cache)}
+              :query "{post(id:2) {__typename id title author {name} comments {text}}}" }))))
 
-  )
+  (testing "sample data 2"
+    (is (= {:data
+            {:posts
+             [{:id 1,
+               :title "Lorem ipsum dolor sit amet",
+               :likes 2,
+               :author {:name "Carey Baltes"}}
+              {:id 2,
+               :title "Omnes veniam no per",
+               :likes 5,
+               :author {:name "Carey Baltes"}}
+              {:id 3,
+               :title "Eam discere principes comprehensam id",
+               :likes 3,
+               :author {:name "Jeanna Hibbard"}}
+              {:id 4,
+               :title "Iuvaret incorrupte his ea",
+               :likes 8,
+               :author {:name "Ermelinda Mcelveen"}}]}}
+           (graphql
+             {:context {:req-cache (b/cache)}
+              :query "{posts {id title likes author {name}}}" }))))
+
+  (testing "sample data 3"
+    (is (= {:data
+            {:author
+             {:name "Carey Baltes"
+              :posts
+              [{:title "Omnes veniam no per",
+                :comments
+                [{:id 3,
+                  :text
+                  "Vim id fugit tation platonem, mei eu abhorreant consequuntur, te est esse latine.",
+                  :email "jeanna.hibbard@example.com"}]}
+               {:title "Lorem ipsum dolor sit amet",
+                :comments
+                [{:id 7,
+                  :text
+                  "Laudem liberavisse pri ne, sed iisque tibique no, autem primis ancillae ut eam.",
+                  :email "jack.greg@example.com"}
+                 {:id 2,
+                  :text
+                  "Iusto fuisset expetendis qui no, cu viris exerci putent sed. Sea dolore audiam efficiantur in, in mel volutpat dissentiet.",
+                  :email "jeanna.hibbard@example.com"}
+                 {:id 1,
+                  :text
+                  "Perpetua molestiae accommodare ea has, mel eu utamur oblique.",
+                  :email "ermelinda.mcelveen@example.com"}]}]}}}
+           (graphql
+             {:context {:req-cache (b/cache)}
+              :query "{author(id:1) { name posts {title comments {id text email}}}}" }))))
+
+  (testing "sample data 4"
+    (is (= {:data
+            {:posts
+             [{:id 1,
+               :comments [{:id 7} {:id 2} {:id 1}],
+               :author
+               {:name "Carey Baltes",
+                :posts
+                [{:comments [{:id 3}]} {:comments [{:id 7} {:id 2} {:id 1}]}]}}
+              {:id 2,
+               :comments [{:id 3}],
+               :author
+               {:name "Carey Baltes",
+                :posts
+                [{:comments [{:id 3}]} {:comments [{:id 7} {:id 2} {:id 1}]}]}}
+              {:id 3,
+               :comments [{:id 5}],
+               :author {:name "Jeanna Hibbard", :posts [{:comments [{:id 5}]}]}}
+              {:id 4,
+               :comments [{:id 6} {:id 4}],
+               :author
+               {:name "Ermelinda Mcelveen",
+                :posts [{:comments [{:id 6} {:id 4}]}]}}]}}
+           (graphql
+             {:context {:req-cache (b/cache)}
+              :query "{posts {id comments {id} author {name posts {comments {id}}}}}" })))))

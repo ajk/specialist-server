@@ -1,6 +1,7 @@
 (ns specialist-server.parser-test
   (:require [clojure.test :refer :all]
             [clojure.java.io :as io]
+            [clojure.pprint :refer [pprint]]
             [specialist-server.parser :as p]))
 
 (def query  (-> "test/__schema.txt" io/resource slurp))
@@ -16,6 +17,13 @@
     }
   }")
 
+
+#_(pprint (p/parse "query Foo($a: String!=\"?\") {foo(a:1) {bar baz(b:2)} foo2 {bar2 baz2}}"))
+
+#_(pprint (p/parse "query Foo { foo {bar {...Frag} baz} } query Bar {bar ...Frag } fragment Frag on bar {quux quux2}"))
+
+#_(pprint (p/parse query))
+
 ;;;
 
 (deftest antlr-test
@@ -24,5 +32,5 @@
     (is (= (p/graphql-two-step query) result))
     )
   (testing "parse query with reserved words"
-    (is (fn? (p/parse bad-query))))
+    (is (map? (p/parse bad-query))))
   )
