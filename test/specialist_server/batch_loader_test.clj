@@ -132,6 +132,10 @@
                               :posts  #'posts
                               :author #'author}}))
 
+#_(time (dotimes [_ 2000]
+          (graphql {:context {:req-cache (b/cache)}
+                    :query "{posts {id comments {id} author {posts {comments {id}}}}}"})))
+
 ;;;
 
 (deftest batch-loader

@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- New query parser
+
 ## [0.4.0] - 2018-03-28
 
 - Renamed core/executor -> core/server
