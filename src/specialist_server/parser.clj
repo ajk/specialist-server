@@ -120,7 +120,7 @@
   (walk/postwalk
     (fn [v]
       (if (and (seq? v) (= :fragmentSpread (first v)))
-        (get fragment #spy/p (last v))
+        (get fragment (last v))
         v))
     query))
 
