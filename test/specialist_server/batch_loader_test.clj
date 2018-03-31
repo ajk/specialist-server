@@ -158,7 +158,7 @@
                 "Vim id fugit tation platonem, mei eu abhorreant consequuntur, te est esse latine."}]}}}
            (graphql
              {:context {:req-cache (b/cache)}
-              :query "{post(id:2) {__typename id title author {name} comments {text}}}" }))))
+              :query "query PostQuery($id:Int!=2) {post(id:$id) {__typename id title author {name} comments {text}}}" }))))
 
   (testing "sample data 2"
     (is (= {:data
@@ -210,7 +210,8 @@
                   :email "ermelinda.mcelveen@example.com"}]}]}}}
            (graphql
              {:context {:req-cache (b/cache)}
-              :query "{author(id:1) { name posts {title comments {id text email}}}}" }))))
+              :variables {:id "1"}
+              :query "query AuthorQuery($id:Int!) {author(id:$id) { name posts {title comments {id text email}}}}" }))))
 
   (testing "sample data 4"
     (is (= {:data
