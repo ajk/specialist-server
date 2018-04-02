@@ -128,9 +128,41 @@
 
 ;;;
 
+(def preparse-str
+"
+query PostQuery($id:Int!=2) {
+  post(id:$id) {
+    __typename
+    id
+    title
+    author {
+      name
+    }
+    comments {
+      text
+    }
+  }
+}
+
+query AuthorQuery($id:Int!) {
+  author(id:$id) {
+    name
+    posts {
+      title
+      comments {
+        id
+        text
+        email
+      }
+    }
+  }
+}
+")
+
 (def graphql (server {:query {:post   #'post
                               :posts  #'posts
-                              :author #'author}}))
+                              :author #'author}}
+                     preparse-str))
 
 #_(time (dotimes [_ 2000]
           (graphql {:context {:req-cache (b/cache)}
@@ -158,7 +190,7 @@
                 "Vim id fugit tation platonem, mei eu abhorreant consequuntur, te est esse latine."}]}}}
            (graphql
              {:context {:req-cache (b/cache)}
-              :query "query PostQuery($id:Int!=2) {post(id:$id) {__typename id title author {name} comments {text}}}" }))))
+              :queryName "PostQuery"}))))
 
   (testing "sample data 2"
     (is (= {:data
@@ -211,7 +243,7 @@
            (graphql
              {:context {:req-cache (b/cache)}
               :variables {:id "1"}
-              :query "query AuthorQuery($id:Int!) {author(id:$id) { name posts {title comments {id text email}}}}" }))))
+              :queryName "AuthorQuery"}))))
 
   (testing "sample data 4"
     (is (= {:data

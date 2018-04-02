@@ -3,6 +3,7 @@
 ## [Unreleased]
 
 - New query parser
+- Added support for preparsed queries
 
 ## [0.4.0] - 2018-03-28
 

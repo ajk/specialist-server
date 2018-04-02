@@ -5,13 +5,21 @@
             [specialist-server.resolver :as r]
             [specialist-server.introspection :as i]))
 
+
 (defn- execute [query op-name context info]
   (try
-    (if (nil? op-name)
-      (-> query p/parse vals first (r/run context info))
-      (if-let [op (-> query p/parse (get op-name))]
+    (let [op-map (if (map? query) query (p/parse query))
+          op (get op-map op-name)]
+      (cond
+        (and (nil? op-name) (string? query))
+        (-> op-map vals first (r/run context info))
+
+        (not (nil? op))
         (r/run op context info)
+
+        :else
         (throw (ex-info (str "Query error: no such operation") {:name op-name}))))
+
     (catch clojure.lang.ExceptionInfo ex
       (.write *out*
               (with-out-str
@@ -24,8 +32,9 @@
                  :query_id (:id info)}]})))
 
 (defn server
-  [schema] ;TODO pre-parse queries
-  (let [type-map (i/type-map schema)]
+  [schema & pre-strings]
+  (let [preparsed (reduce (fn [coll s] (merge coll (p/parse s))) {} pre-strings)
+        type-map (i/type-map schema)]
     (fn [{:keys [query variables root context queryName]}]
       (let [info {:id (str (java.util.UUID/randomUUID))
                   :schema (-> schema
@@ -34,7 +43,7 @@
                   :type-map type-map
                   :variable-values (reduce-kv (fn [m k v] (assoc m (keyword k) v )) {} variables)
                   :root-value (or root {})}]
-        (execute query queryName (or context {}) info)))))
+        (execute (or query preparsed) queryName (or context {}) info)))))
 
 (defn executor
   "Alias for specialist-server.core/server"
