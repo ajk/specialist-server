@@ -22,7 +22,12 @@
 
 #_(pprint (p/parse "query Foo { foo {bar {...Frag} baz} } query Bar {bar ...Frag } fragment Frag on bar {quux quux2}"))
 
+#_(pprint (p/parse "query Foo { foo {bar {...Frag meh} baz} } fragment Frag on bar {quux quux2}"))
+
 #_(pprint (p/parse query))
+
+#_(time (dotimes [_ 1000]
+          (p/parse query)))
 
 ;;;
 

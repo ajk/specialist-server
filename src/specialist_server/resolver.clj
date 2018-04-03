@@ -45,9 +45,9 @@
 (defn queue->out-fn [vars context info]
   (let [queue-tuples (fn [key-root parent sel-set]
                        (map (fn [[[in-name out-name] args children]]
-                              (if-let [node (get parent in-name)]
+                              (if (contains? parent in-name)
                                 (list (conj key-root out-name)
-                                      (resolve-field node
+                                      (resolve-field (get parent in-name)
                                                      parent
                                                      (field-args args vars)
                                                      context

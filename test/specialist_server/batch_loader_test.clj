@@ -150,12 +150,16 @@ query AuthorQuery($id:Int!) {
     posts {
       title
       comments {
-        id
-        text
-        email
+        ...CommentFrag
       }
     }
   }
+}
+
+fragment CommentFrag on comments {
+  id
+  text
+  email
 }
 ")
 
@@ -163,6 +167,10 @@ query AuthorQuery($id:Int!) {
                               :posts  #'posts
                               :author #'author}}
                      preparse-str))
+
+
+
+#_(pprint (graphql {:query (-> "test/__schema.txt" io/resource slurp)}))
 
 #_(time (dotimes [_ 2000]
           (graphql {:context {:req-cache (b/cache)}

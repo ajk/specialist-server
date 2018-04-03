@@ -117,12 +117,25 @@
    (list kind op-name var-def op)))
 
 (defn with-fragments [query fragment]
-  (walk/postwalk
-    (fn [v]
-      (if (and (seq? v) (= :fragmentSpread (first v)))
-        (get fragment (last v))
-        v))
-    query))
+  (let [node? (fn [v] (and (list? v) (= 3 (count v)) (map? (second v))))
+        unwrap-selections (fn [coll v]
+                            (if-not (node? v)
+                              (apply conj (cons coll v))
+                              (conj coll v)))]
+    (walk/postwalk
+      (fn [v]
+        (cond
+          ;; Apply fragment selection sets
+          (and (seq? v) (= :fragmentSpread (first v)))
+          (get fragment (last v))
+
+          ;; Unwrap extra nested lists from fragment expansion
+          (node? v)
+          (list (first v)
+                (second v)
+                (reduce unwrap-selections '() (last v)))
+          :else v))
+      query)))
 
 (defn document [& def-list]
   (let [{:keys [query fragment]}
@@ -135,8 +148,10 @@
                 {:query {} :fragment {}} def-list)]
     (if (empty? fragment)
       query
-      ;; Expand query fragments. Go three levels deep for now.
+      ;; Expand query fragments. Go five levels deep for now.
       (-> query
+          (with-fragments fragment)
+          (with-fragments fragment)
           (with-fragments fragment)
           (with-fragments fragment)
           (with-fragments fragment)))))
