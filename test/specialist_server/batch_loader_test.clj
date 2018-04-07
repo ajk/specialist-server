@@ -30,7 +30,7 @@
   (assoc v :posts #'posts))
 
 (defn post-node [v]
-  (assoc v :likes #'likes :author #'author :comments #'comments))
+  (assoc v :status "PUBLISHED" :likes #'likes :author #'author :comments #'comments))
 
 ;;;
 
@@ -97,6 +97,12 @@
 (s/def ::post-id   t/long)
 (s/def ::author-id t/long)
 
+
+;; Could be boolean but let's test enums as well
+(t/defenum post-status "Post status" #{"DRAFT" "PUBLISHED"})
+
+(s/def ::status (t/field post-status "Post status"))
+
 (s/def ::author   (t/resolver #'author))
 (s/def ::comments (t/resolver #'comments))
 (s/def ::posts    (t/resolver #'posts))
@@ -104,7 +110,7 @@
 
 (s/def ::author-node (s/keys :req-un [::id ::name ::email ::posts]))
 
-(s/def ::post-node (s/keys :req-un [::id ::author-id ::date ::title ::text ::likes ::author ::comments]))
+(s/def ::post-node (s/keys :req-un [::id ::author-id ::date ::title ::text ::status ::likes ::author ::comments]))
 
 (s/fdef author
         :args (s/tuple (s/or :post ::post-node :root map?) (s/keys :opt-un [::id]) map? map?)
@@ -149,6 +155,7 @@ query AuthorQuery($id:Int!) {
     name
     posts {
       title
+      status
       comments {
         ...CommentFrag
       }
@@ -168,6 +175,7 @@ fragment CommentFrag on comments {
                               :author #'author}}
                      preparse-str))
 
+;;;
 
 
 #_(pprint (graphql {:query (-> "test/__schema.txt" io/resource slurp)}))
@@ -229,12 +237,14 @@ fragment CommentFrag on comments {
              {:name "Carey Baltes"
               :posts
               [{:title "Omnes veniam no per",
+                :status "PUBLISHED"
                 :comments
                 [{:id 3,
                   :text
                   "Vim id fugit tation platonem, mei eu abhorreant consequuntur, te est esse latine.",
                   :email "jeanna.hibbard@example.com"}]}
                {:title "Lorem ipsum dolor sit amet",
+                :status "PUBLISHED"
                 :comments
                 [{:id 7,
                   :text

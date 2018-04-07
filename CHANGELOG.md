@@ -4,6 +4,7 @@
 
 - New query parser
 - Added support for preparsed queries
+- Enum type fixes
 
 ## [0.4.0] - 2018-03-28
 

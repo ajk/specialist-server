@@ -36,7 +36,7 @@
 
 (s/def ::f-list (s/* ::f-int))
 
-(s/def ::i-resolver (t/resolver #'i-resolver))
+(s/def ::i (t/resolver #'i-resolver))
 
 (s/def ::input-obj (s/keys :req-un [::t-string]))
 
@@ -44,7 +44,7 @@
         :args (s/tuple map? (s/keys :req-un [::f-nil-int ::t-undef] :opt-un [::f-enum]) map? map?)
         :ret t/long)
 
-(s/def ::m-node (s/keys :req-un [::i-resolver ::f-int ::missing ::f-enum-2]))
+(s/def ::m-node (s/keys :req-un [::i ::f-int ::missing ::f-enum-2]))
 
 (s/def ::m-args (s/tuple map? (s/keys :req-un [::input-obj]) map? map?))
 
@@ -99,7 +99,7 @@
     (is (= "f_enum" (-> ::f-enum i/field :name)))
     (is (= "My ABCs" (-> ::f-enum i/field :description)))
     (is (= t/enum-kind (-> ::f-enum i/field :type :ofType :kind)))
-    (is (= '(::i-resolver ::f-int ::missing ::f-enum-2) (-> #'m-resolver i/type :ofType :ofType :fields)))
+    (is (= '(::i ::f-int ::missing ::f-enum-2) (-> #'m-resolver i/type :ofType :ofType :fields)))
 
     (is (= t/enum-kind (-> ::f-enum-2 i/field :type :ofType :kind)))
     (is (= "my_enum" (-> ::f-enum-2 i/field :type :ofType :name)))

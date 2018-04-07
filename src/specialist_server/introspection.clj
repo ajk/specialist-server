@@ -158,7 +158,7 @@
   (let [m (meta v)]
     (-> base-type
         (assoc :kind t/enum-kind)
-        (assoc :name (get m ::t/name (str "Enum" (hash v))))
+        (assoc :name (name-str (get m ::t/name (str "Enum" (hash v)))))
         (assoc :description (::t/type-description m))
         (assoc :enumValues (map (fn [e]
                                   {:name e
@@ -196,8 +196,14 @@
 
     (= 'specialist-server.type/field (first v))
     (let [m (field-meta v)]
-      (if (set? (second v))
+      (cond
+        (set? (second v))
         (type (second v))
+
+        (symbol? (second v))
+        (type (-> v second resolve deref))
+
+        :else
         (-> base-type
             (assoc :kind (::t/kind m))
             (assoc :name (name-str (::t/name m)))
