@@ -258,6 +258,7 @@
       (::t/var m)
       (-> (::t/var m)
           field
+          (assoc :name (name-str v))
           (assoc :description (::t/field-description m))
           (assoc :isDeprecated (boolean (::t/is-deprecated m)))
           (assoc :deprecationReason (::t/deprecation-reason m)))
