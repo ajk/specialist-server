@@ -130,7 +130,7 @@
 (defmethod type :var [v]
   (let [v-meta (meta v)
         v-name (get v-meta ::t/name (-> v-meta :name str))
-        doc (:doc v-meta)
+        doc (get v-meta ::t/type-description (:doc v-meta))
         ret (-> v get-spec rest even->map :ret)
         field-keys (ret-keys ret)]
     (if field-keys
@@ -234,7 +234,7 @@
 (defmethod field :var [v]
   (let [v-meta (meta v)
         v-name (-> v-meta :name str)
-        doc (:doc v-meta)
+        doc (get v-meta ::t/field-description (:doc v-meta))
         depr (:deprecated v-meta)]
     {:name (name-str v-name)
      :description doc
