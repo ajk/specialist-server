@@ -42,7 +42,7 @@
       (assoc m k (if (keyword? v) (get vars v) v)))
     {} arg-map))
 
-(defn queue->out-fn [vars context info]
+(defn queue->out [vars context info out queue]
   (let [queue-tuples (fn [key-root parent sel-set]
                        (map (fn [[[in-name out-name] args children]]
                               (if (contains? parent in-name)
@@ -55,55 +55,59 @@
                                       children)
                                 (throw (ex-info (str "Parse error: no such field " in-name " in " (pr-str key-root)) {}))))
                             sel-set))]
+    (loop [out out
+           idx 0
+           t-queue (transient queue)]
 
-    (fn [[out queue] [k node children]]
-      (let [type-name (-> node meta ::type-name)
-            v (if (fn? node) (node) node)]
+      (if-let [[k node children] (get t-queue idx)]
+        (let [type-name (-> node meta ::type-name)
+              v (if (fn? node) (node) node)]
 
-        (when (and (empty? children) (or (map? v) (and (coll? v) (-> v first map?))))
-          (throw (ex-info
-                   (str "invalid query on " type-name ": "
-                        "the resolver returned a map or list but a scalar value was queried.")
-                   {:path k})))
-        (cond
-          (not (coll? v))
-          [(assoc-in out k v)
-           queue]
+          (when (and (empty? children) (or (map? v) (and (coll? v) (-> v first map?))))
+            (throw (ex-info
+                     (str "invalid query on " type-name ": "
+                          "the resolver returned a map or list but a scalar value was queried.")
+                     {:path k})))
+          (cond
+            (not (coll? v))
+            (recur
+              (assoc-in out k v)
+              (inc idx)
+              t-queue)
 
-          (map? v)
-          [(assoc-in out k {})
-           (reduce conj! queue (queue-tuples k (assoc v :__typename type-name) children))]
+            (map? v)
+            (recur
+              (assoc-in out k {})
+              (inc idx)
+              (reduce conj! t-queue (queue-tuples k (assoc v :__typename type-name) children)))
 
-          :else
-          [(assoc-in out k [])
-           (reduce #(reduce conj! %1 %2)
-                   queue
-                   (map (fn [i j] (queue-tuples (conj k i) (assoc j :__typename type-name) children))
-                        (-> v count range) v))])))))
+            :else
+            (recur
+              (assoc-in out k [])
+              (inc idx)
+              (reduce #(reduce conj! %1 %2)
+                      t-queue
+                      (map (fn [i j] (queue-tuples (conj k i) (assoc j :__typename type-name) children))
+                           (-> v count range) v)))))
+
+        out))))
 
 (defn run [[op query-args schema-sel-set] context {:keys [schema variable-values root-value] :as info}]
   (let [vars (reduce-kv
                (fn [m k v]
                  (assoc m k (get variable-values k (:default v))))
-               {} query-args)
-        queue->out (queue->out-fn vars context info)]
+               {} query-args)]
 
-    (loop [out-queue
-           [{:data {}}
-            (transient
-              (mapv (fn [[[in-name out-name] args children]]
-                      (if-let [node (get-in schema [op in-name])]
-                        (list [:data out-name]
-                              (resolve-field node
-                                             root-value
-                                             (field-args args vars)
-                                             context
-                                             (assoc info :field-name out-name :path []))
-                              children)
-                        (throw (ex-info (str "Parse error: no such field " in-name " in schema") {}))))
-                    schema-sel-set))]]
-      (let [out   (first out-queue)
-            queue (persistent! (last out-queue))]
-        (if (empty? queue)
-          out
-          (recur (reduce queue->out [out (transient [])] queue)))))))
+    (queue->out vars context info
+                {:data {}}
+                (mapv (fn [[[in-name out-name] args children]]
+                        (if-let [node (get-in schema [op in-name])]
+                          (list [:data out-name]
+                                (resolve-field node
+                                               root-value
+                                               (field-args args vars)
+                                               context
+                                               (assoc info :field-name out-name :path []))
+                                children)
+                          (throw (ex-info (str "Parse error: no such field " in-name " in schema") {}))))
+                      schema-sel-set))))

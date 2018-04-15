@@ -184,6 +184,11 @@ fragment CommentFrag on comments {
           (graphql {:context {:req-cache (b/cache)}
                     :query "{posts {id comments {id} author {posts {comments {id}}}}}"})))
 
+#_(time (dotimes [_ 5000]
+          (graphql {:context {:req-cache (b/cache)}
+                    :variables {:id "1"}
+                    :queryName "AuthorQuery"})))
+
 ;;;
 
 (deftest batch-loader
