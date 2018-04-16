@@ -18,18 +18,11 @@
           (throw (IllegalArgumentException.
                    "batch-loader must return a map.")))))))
 
-(defn- id->set [id]
-  (if (sequential? id)
-    (set id)
-    (set (list id))))
-
 (defn batch-loader [fun]
   (let [cache-key (str (java.util.UUID/randomUUID))]
     (fn [c id & ctx]
-      (swap! c update-in [cache-key :id-set] union (id->set id))
+      (swap! c update-in [cache-key :id-set] union (-> id list set))
       (fn []
-        (if (sequential? id)
-          (map #(load-batch c cache-key fun % ctx) id)
-          (load-batch c cache-key fun id ctx))))))
+        (load-batch c cache-key fun id ctx)))))
 
 (defn cache [] (atom {}))
