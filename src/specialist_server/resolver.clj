@@ -42,7 +42,7 @@
       (assoc m k (if (keyword? v) (get vars v) v)))
     {} arg-map))
 
-(defn queue->out [vars context info out queue]
+(defn selections->queue->out [vars context info queue]
   (let [queue-tuples (fn [key-root parent sel-set]
                        (map (fn [[[in-name out-name] args children]]
                               (if (contains? parent in-name)
@@ -55,7 +55,7 @@
                                       children)
                                 (throw (ex-info (str "Parse error: no such field " in-name " in " (pr-str key-root)) {}))))
                             sel-set))]
-    (loop [out out
+    (loop [out {:data {}}
            idx 0
            t-queue (transient queue)]
 
@@ -98,16 +98,16 @@
                  (assoc m k (get variable-values k (:default v))))
                {} query-args)]
 
-    (queue->out vars context info
-                {:data {}}
-                (mapv (fn [[[in-name out-name] args children]]
-                        (if-let [node (get-in schema [op in-name])]
-                          (list [:data out-name]
-                                (resolve-field node
-                                               root-value
-                                               (field-args args vars)
-                                               context
-                                               (assoc info :field-name out-name :path []))
-                                children)
-                          (throw (ex-info (str "Parse error: no such field " in-name " in schema") {}))))
-                      schema-sel-set))))
+    (selections->queue->out
+      vars context info
+      (mapv (fn [[[in-name out-name] args children]]
+              (if-let [node (get-in schema [op in-name])]
+                (list [:data out-name]
+                      (resolve-field node
+                                     root-value
+                                     (field-args args vars)
+                                     context
+                                     (assoc info :field-name out-name :path []))
+                      children)
+                (throw (ex-info (str "Parse error: no such field " in-name " in schema") {}))))
+            schema-sel-set))))
