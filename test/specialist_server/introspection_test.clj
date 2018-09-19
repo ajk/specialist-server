@@ -10,6 +10,10 @@
   [node opt ctx info]
   1)
 
+(defn j-resolver
+  [node opt ctx info]
+  {:f-enum-2 "ONE"})
+
 (defn m-resolver
   "My type description"
   [node opt ctx info]
@@ -37,6 +41,7 @@
 (s/def ::f-list (s/* ::f-int))
 
 (s/def ::i (t/resolver #'i-resolver))
+(s/def ::j (t/resolver #'j-resolver))
 
 (s/def ::input-obj (s/keys :req-un [::t-string]))
 
@@ -44,15 +49,17 @@
         :args (s/tuple map? (s/keys :req-un [::f-nil-int ::t-undef] :opt-un [::f-enum]) map? map?)
         :ret t/long)
 
-(s/def ::m-node (s/keys :req-un [::i ::f-int ::missing ::f-enum-2]))
+(s/fdef j-resolver
+        :args (s/tuple map? map? map? map?)
+        :ret (s/keys :req-un [::f-enum-2]))
+
+(s/def ::m-node (s/keys :req-un [::i ::j ::f-int ::missing]))
 
 (s/def ::m-args (s/tuple map? (s/keys :req-un [::input-obj]) map? map?))
 
 (s/fdef m-resolver
         :args ::m-args
         :ret (s/nilable (s/* ::m-node)))
-
-
 
 ;;;
 
@@ -61,7 +68,16 @@
 
 #_(pprint (s/conform ::composite "foofoo"))
 
+#_(pprint (i/type-map {:query {:m #'m-resolver}}))
+
 #_(pprint (keys (i/type-map {:query {:m #'m-resolver}})))
+
+#_(pprint (i/type ::j))
+#_(pprint (i/ret-keys ::j))
+
+#_(pprint (-> ::j i/type :ofType :fields))
+
+#_(pprint (i/field->types {} ::j))
 
 #_(pprint (i/field #'m-resolver))
 
@@ -87,7 +103,8 @@
 
     (is (= "String"  (-> ::composite i/type :name)))
 
-    (is (= "Long" (-> #'i-resolver i/type :ofType :name)))
+    (is (= "Long"       (-> #'i-resolver i/type :ofType :name)))
+    (is (= "j_resolver" (-> #'j-resolver i/type :ofType :name)))
     (is (= t/list-kind (-> #'m-resolver i/type :kind)))
     (is (= "m_resolver" (-> #'m-resolver i/type :ofType :ofType :name)))
 
@@ -99,7 +116,7 @@
     (is (= "f_enum" (-> ::f-enum i/field :name)))
     (is (= "My ABCs" (-> ::f-enum i/field :description)))
     (is (= t/enum-kind (-> ::f-enum i/field :type :ofType :kind)))
-    (is (= '(::i ::f-int ::missing ::f-enum-2) (-> #'m-resolver i/type :ofType :ofType :fields)))
+    (is (= '(::i ::j ::f-int ::missing) (-> #'m-resolver i/type :ofType :ofType :fields)))
 
     (is (= t/enum-kind (-> ::f-enum-2 i/field :type :ofType :kind)))
     (is (= "my_enum" (-> ::f-enum-2 i/field :type :ofType :name)))

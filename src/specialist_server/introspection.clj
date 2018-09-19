@@ -299,18 +299,24 @@
 (defn- call-fn [f]
   (if (fn? f) (f) f))
 
-(defn- field->types [coll v]
+(defn field->types [coll v]
   (let [v-type (loop [v-t (type v)]
                  (cond
                    (nil? v-t)  nil
                    (:name v-t) v-t
-                   :else (recur (:ofType v-t))))]
+                   :else (recur (:ofType v-t))))
+        v-fields (or
+                   (-> v-type :fields)
+                   (-> v-type :ofType :fields)
+                   (-> v-type :ofType :ofType :fields)
+                   '())]
     (cond
       (nil? v-type) coll
       (contains? coll (:name v-type)) coll
-      :else (assoc (reduce field->types coll (concat (arg-keys v) (ret-keys v)))
-                   (:name v-type)
-                   v-type))))
+      :else
+      (reduce field->types
+              (assoc coll (:name v-type) v-type)
+              (set (concat v-fields (arg-keys v) (ret-keys v)))))))
 
 (defn type-map [schema]
   (assoc (->> schema

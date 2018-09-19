@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- Improved object type introspection
+
 ## [0.5.0] - 2018-07-31
 
 - New query parser
