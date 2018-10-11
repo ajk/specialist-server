@@ -4,6 +4,16 @@ Wouldn't it be neat to define your entire API with [spec?](https://clojure.org/g
 
 GraphQL is a query language for APIs. Specialist-server is a tool for fulfilling those queries in your application. Spec is a first-class citizen here; there's not much you can do without it.
 
+**Feature highlights**
+
+* Spec-driven
+* Fast ANTLR query parser
+* Supports pre-parsed queries
+* Included batch-loader for efficient data fetching 
+* Minimal dependencies
+
+**[Please see the wiki for full documentation.](https://github.com/ajk/specialist-server/wiki)**
+
 More info on GraphQL:
 
 * [Project](http://graphql.org/)
