@@ -1,5 +1,5 @@
 (ns specialist-server.core
-  (:require [clojure.walk :as walk]
+  (:require [clojure.tools.logging :as log]
             [clojure.pprint :refer [pprint]]
             [specialist-server.parser :as p]
             [specialist-server.resolver :as r]
@@ -12,26 +12,40 @@
           op (get op-map op-name)]
       (cond
         (and (nil? op-name) (string? query))
-        (-> op-map vals first (r/run context info))
+        (do
+          (log/debug "Parse and run query:" query)
+          (-> op-map vals first (r/run context info)))
 
         (not (nil? op))
-        (r/run op context info)
+        (do
+          (log/debug "Run query:" op-name)
+          (r/run op context info))
 
         :else
         (throw (ex-info (str "Query error: no such operation") {:name op-name}))))
 
     (catch clojure.lang.ExceptionInfo ex
-      (.write *out*
-              (with-out-str
-                (println (:id info) ">>>")
-                (println (.getMessage ex))
-                (pprint (ex-data ex))
-                (println "<<<" (:id info))))
-      (flush)
+      (log/error
+        (with-out-str
+          (println (:id info) ">>>")
+          (println (.getMessage ex))
+          (pprint (ex-data ex))
+          (println "<<<" (:id info))))
       {:errors [{:message (.getMessage ex)
                  :query_id (:id info)}]})))
 
 (defn server
+  "Creates GraphQL server fn from schema.
+
+   Usage:
+   (def graphql (server {:query {...} :mutation {...}}))
+   (graphql {:query \"query FooQuery {...}\" :context my-ctx :root {}})
+
+   You can also pass in query strings which are pre-parsed and can be called by name (similiar to stored procedures):
+
+   (def graphql-pre (server {:query {...} :mutation {...}} (slurp path-to-queries-1) ... (slurp path-to-queries-N)))
+   (graphql-pre {:queryName \"FooQuery\" :variables {...} :context my-ctx :root {}})
+  "
   [schema & pre-strings]
   (let [preparsed (reduce (fn [coll s] (merge coll (p/parse s))) {} pre-strings)
         type-map (i/type-map schema)]

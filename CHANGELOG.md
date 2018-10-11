@@ -2,6 +2,7 @@
 
 ## [Unreleased]
 
+- Improved logging
 - Improved object type introspection
 
 ## [0.5.0] - 2018-07-31

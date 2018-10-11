@@ -1,6 +1,7 @@
 (ns specialist-server.introspection
   (:refer-clojure :exclude [type])
-  (:require [clojure.spec.alpha :as s]
+  (:require [clojure.tools.logging :as log]
+            [clojure.spec.alpha :as s]
             [clojure.string :as string]
             [clojure.walk :as walk]
             [specialist-server.type :as t]))
@@ -300,6 +301,7 @@
   (if (fn? f) (f) f))
 
 (defn field->types [coll v]
+  (log/trace "field->types: inspecting argument" v)
   (let [v-type (loop [v-t (type v)]
                  (cond
                    (nil? v-t)  nil
@@ -310,6 +312,7 @@
                    (-> v-type :ofType :fields)
                    (-> v-type :ofType :ofType :fields)
                    '())]
+    (log/trace "-> got type:" v-type)
     (cond
       (nil? v-type) coll
       (contains? coll (:name v-type)) coll
