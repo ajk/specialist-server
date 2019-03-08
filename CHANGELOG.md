@@ -4,6 +4,7 @@
 
 - Improved logging
 - Improved object type introspection
+- Use Clojure 1.10.0
 
 ## [0.5.0] - 2018-07-31
 
