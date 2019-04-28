@@ -52,6 +52,26 @@
                   :specialist-server.type/field-description "Self descriptive."))))
 
 
+(defn input-object
+  ([o-name t] (input-object o-name t {}))
+  ([o-name t opt]
+   (vary-meta t
+              assoc
+              :specialist-server.type/kind input-object-kind
+              :specialist-server.type/name o-name
+              :specialist-server.type/type-description (:description opt)
+              )))
+
+(defn object
+  ([o-name t] (object o-name t {}))
+  ([o-name t opt]
+   (vary-meta t
+              assoc
+              :specialist-server.type/kind object-kind
+              :specialist-server.type/name o-name
+              :specialist-server.type/type-description (:description opt)
+              )))
+
 (defn field
   ([t doc] (field t doc {}))
   ([t doc opt]
@@ -153,6 +173,7 @@
            ::t/field-description doc
            ::t/is-deprecated (clojure.core/boolean (:deprecated opt))
            ::t/deprecation-reason (:deprecated opt))))
+
 
 ;;;
 

@@ -7,7 +7,6 @@
             [specialist-server.type :as t]))
 
 ;TODO
-; - Input object
 ; - Directive
 ; - Union (?)
 ; - Interface (?)
@@ -149,7 +148,7 @@
   (let [spec (s/get-spec v)
         spec-meta (meta spec)]
     (if (or (::t/var spec-meta) (::t/kind spec-meta))
-      (type spec-meta)
+      (type (assoc spec-meta :type-kw v))
       (some-> spec s/form type))))
 
 (defmethod type :sym [v]
@@ -186,15 +185,6 @@
     (= 'clojure.spec.alpha/and (first v))
     (some #(type %) (rest v))
 
-    ;; Currently only used in input types
-    (= 'clojure.spec.alpha/keys (first v))
-    (-> base-type
-        (dissoc :fields)
-        (assoc :kind t/input-object-kind)
-        (assoc :name (string/replace (str "InputObject" (hash v)) "-" "_")) ; We don't have a proper type name so generate one.
-        (assoc :inputFields (ret-keys v)) ; Just the keys, break infinite type -> fields -> type loops
-        non-null)
-
     (= 'specialist-server.type/field (first v))
     (let [m (field-meta v)]
       (cond
@@ -203,6 +193,13 @@
 
         (symbol? (second v))
         (type (-> v second resolve deref))
+
+        ;;example: (s/def ::foo (t/field (s/* ::bar) "Some foo list"))
+        (and (seq? (second v)) (coll-type? (-> v second first)))
+        (-> base-type
+            (assoc :kind t/list-kind)
+            (assoc :ofType (type (second v)))
+            non-null)
 
         :else
         (-> base-type
@@ -213,8 +210,28 @@
 
 
 (defmethod type :map [v]
-  (if (::t/var v)
+  (cond
+    (::t/var v)
     (type (::t/var v))
+
+    (= t/input-object-kind (::t/kind v))
+    (-> base-type
+        (dissoc :fields)
+        (assoc :kind t/input-object-kind)
+        (assoc :name (::t/name v))
+        (assoc :inputFields (-> v :type-kw ret-keys)) ; Just the keys, break infinite type -> fields -> type loops
+        non-null)
+
+    (= t/object-kind (::t/kind v))
+    (-> base-type
+        (assoc :kind t/object-kind)
+        (assoc :name (::t/name v))
+        (assoc :description (::t/description v))
+        (assoc :fields (-> v :type-kw ret-keys)) ; Just the keys, break infinite type -> fields -> type loops
+        (assoc :interfaces [])
+        non-null)
+
+    :else
     (-> base-type
         (assoc :kind (::t/kind v))
         (assoc :name (name-str (::t/name v)))
