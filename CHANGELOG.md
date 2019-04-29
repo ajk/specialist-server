@@ -2,7 +2,7 @@
 
 ## [Unreleased]
 
-- Added type/object and type/input-object
+- Added type/defobject macro
 - Improved logging
 - Improved object and list type introspection
 - Use Clojure 1.10.0

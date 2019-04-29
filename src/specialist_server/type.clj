@@ -51,26 +51,26 @@
                   :specialist-server.type/type-description ~(:description meta-map)
                   :specialist-server.type/field-description "Self descriptive."))))
 
+(defmacro defobject
+  "Defines new object types."
+  [o-name o-meta & field-opt]
+  (let [meta-map (if (map? o-meta) o-meta {:kind object-kind :description o-meta})
+        fields (vec (apply concat (filter vector? field-opt)))]
+    `(def ~(vary-meta o-name
+                      assoc
+                      :specialist-server.type/name (get meta-map :name (name o-name))
+                      :specialist-server.type/kind (:kind meta-map)
+                      :specialist-server.type/fields fields
+                      :specialist-server.type/type-description (:description meta-map)
+                      :specialist-server.type/field-description "Self descriptive.")
+       (vary-meta (s/keys ~@field-opt)
+                  assoc
+                  :specialist-server.type/name ~(get meta-map :name (name o-name))
+                  :specialist-server.type/kind ~(:kind meta-map)
+                  :specialist-server.type/fields ~fields
+                  :specialist-server.type/type-description ~(:description meta-map)
+                  :specialist-server.type/field-description "Self descriptive."))))
 
-(defn input-object
-  ([o-name t] (input-object o-name t {}))
-  ([o-name t opt]
-   (vary-meta t
-              assoc
-              :specialist-server.type/kind input-object-kind
-              :specialist-server.type/name o-name
-              :specialist-server.type/type-description (:description opt)
-              )))
-
-(defn object
-  ([o-name t] (object o-name t {}))
-  ([o-name t opt]
-   (vary-meta t
-              assoc
-              :specialist-server.type/kind object-kind
-              :specialist-server.type/name o-name
-              :specialist-server.type/type-description (:description opt)
-              )))
 
 (defn field
   ([t doc] (field t doc {}))

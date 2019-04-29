@@ -219,15 +219,16 @@
         (dissoc :fields)
         (assoc :kind t/input-object-kind)
         (assoc :name (::t/name v))
-        (assoc :inputFields (-> v :type-kw ret-keys)) ; Just the keys, break infinite type -> fields -> type loops
+        (assoc :description (get v ::t/type-description (:doc v)))
+        (assoc :inputFields (get v ::t/fields  (-> v :type-kw ret-keys))) ; Just the keys, break infinite type -> fields -> type loops
         non-null)
 
     (= t/object-kind (::t/kind v))
     (-> base-type
         (assoc :kind t/object-kind)
         (assoc :name (::t/name v))
-        (assoc :description (::t/description v))
-        (assoc :fields (-> v :type-kw ret-keys)) ; Just the keys, break infinite type -> fields -> type loops
+        (assoc :description (get v ::t/type-description (:doc v)))
+        (assoc :fields (get v ::t/fields  (-> v :type-kw ret-keys))) ; Just the keys, break infinite type -> fields -> type loops
         (assoc :interfaces [])
         non-null)
 

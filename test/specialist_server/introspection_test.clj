@@ -43,7 +43,9 @@
 (s/def ::i (t/resolver #'i-resolver))
 (s/def ::j (t/resolver #'j-resolver))
 
-(s/def ::input-obj (t/field (t/input-object "InputOne" (s/keys :req-un [::t-string])) "Example input object"))
+(t/defobject InputOne {:kind t/input-object-kind :description "Example input object"} :req-un [::t-string])
+
+(s/def ::input-obj (t/field InputOne ""))
 
 (s/fdef i-resolver
         :args (s/tuple map? (s/keys :req-un [::f-nil-int ::t-undef] :opt-un [::f-enum]) map? map?)
