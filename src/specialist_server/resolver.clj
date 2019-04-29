@@ -30,10 +30,15 @@
       (if (= c-args ::spec/invalid)
         (throw (ex-info (str "failed to conform arguments for " field)
                         (select-keys (spec/explain-data args-spec (vec args)) [::spec/problems])))
-        (let [res (apply (deref field) c-args)]
+        (let [res (try
+                    (apply (deref field) c-args)
+                    (catch Exception e (throw (ex-info (str field ": " (.toString e)) {:exception e}))))]
           (if (fn? res)
             ;; Allow for batch-loader to collect more nodes, return closure here and run later.
-            (fn [] (valid-res field ret-spec (res)))
+            (fn []
+              (valid-res field ret-spec (try
+                                          (res)
+                                          (catch Exception e (throw (ex-info (str field ": " (.toString e)) {:exception e}))))))
             (valid-res field ret-spec res)))))))
 
 (defn field-args [arg-map vars]

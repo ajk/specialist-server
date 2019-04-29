@@ -3,7 +3,7 @@
 ## [Unreleased]
 
 - Added type/defobject macro
-- Improved logging
+- Improved logging and error handling
 - Improved object and list type introspection
 - Use Clojure 1.10.0
 
