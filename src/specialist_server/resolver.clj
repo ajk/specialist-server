@@ -1,5 +1,6 @@
 (ns specialist-server.resolver
-  (:require [clojure.java.io :as io]
+  (:require [clojure.tools.logging :as log]
+            [clojure.java.io :as io]
             [clojure.spec.alpha :as spec]
             [clojure.string :as string]
             [clojure.pprint :refer [pprint]]
@@ -32,13 +33,19 @@
                         (select-keys (spec/explain-data args-spec (vec args)) [::spec/problems])))
         (let [res (try
                     (apply (deref field) c-args)
-                    (catch Exception e (throw (ex-info (str field ": " (.toString e)) {:exception e}))))]
+                    (catch Exception e
+                      (log/error "Exception in" field  "via" (-> c-args last :path pr-str))
+                      (log/error (.toString e))
+                      (throw e)))]
           (if (fn? res)
             ;; Allow for batch-loader to collect more nodes, return closure here and run later.
             (fn []
               (valid-res field ret-spec (try
                                           (res)
-                                          (catch Exception e (throw (ex-info (str field ": " (.toString e)) {:exception e}))))))
+                                          (catch Exception e
+                                            (log/error "Exception in" field  "via" (-> c-args last :path pr-str))
+                                            (log/error (.toString e))
+                                            (throw e)))))
             (valid-res field ret-spec res)))))))
 
 (defn field-args [arg-map vars]
