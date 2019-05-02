@@ -373,21 +373,31 @@
 
 ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ;
 
-
-(defn __fields
-  [{type-name :name} {all? :includeDeprecated} _ info]
-  (let [parent (get-in info [:type-map type-name])
-        field-list (if (= t/input-object-kind (:kind parent)) (:inputFields parent) (:fields parent))
-        out-list (map (fn [v]
+(defn- field-node [field-list all?]
+  (let [out-list (map (fn [v]
                         (assoc (if (vector? v)
                                  ;; If we are looping over a map, use key as field name
                                  (-> v last field (assoc :name (-> v first name)))
                                  (field v))
                                :defaultValue nil)) ;TODO support default values on inputValues
-                        field-list)]
+                      field-list)]
     (if all?
       out-list
       (filter #(not (:isDeprecated %)) out-list))))
+
+(defmulti __fields (fn [[kind _] _ _ _] kind))
+
+(defmethod  __fields :object
+  [[_ node] {all? :includeDeprecated} _ info]
+  (field-node (-> info (get-in [:type-map (:name node)]) :fields) all?))
+
+(defmethod __fields  :input
+  [[_ node] {all? :includeDeprecated} _ info]
+  (field-node (-> info (get-in [:type-map (:name node)]) :inputFields) all?))
+
+(defmethod __fields :default
+  [_ _ _ _]
+  nil)
 
 
 (defn- with-field-resolver
@@ -426,13 +436,40 @@
 
 ;;;
 
-(s/def ::name (s/nilable t/string))
+(s/def ::kind #{t/scalar-kind t/object-kind t/interface-kind t/union-kind t/enum-kind t/input-object-kind t/list-kind t/non-null-kind})
 
-(s/def ::type (s/keys :req-un [::kind ::name ::description ::fields ::inputFields ::interfaces ::possibleTypes ::enumValues ::inputFields ::ofType]))
+(s/def ::name t/string)
+
+(s/def ::description (s/nilable t/string))
+
+(s/def ::type (s/or :non-null (s/and #(= (:kind %) t/non-null-kind)     (s/keys :req-un [::kind ::ofType]))
+                    :list     (s/and #(= (:kind %) t/list-kind)         (s/keys :req-un [::kind ::ofType]))
+                    :object   (s/and #(= (:kind %) t/object-kind)       (s/keys :req-un [::kind ::name ::description ::fields ::interfaces]))
+                    :input    (s/and #(= (:kind %) t/input-object-kind) (s/keys :req-un [::kind ::name ::description ::inputFields]))
+                    :scalar   (s/and #(= (:kind %) t/scalar-kind)       (s/keys :req-un [::kind ::name ::description]))
+                    :enum     (s/and #(= (:kind %) t/enum-kind)         (s/keys :req-un [::kind ::name ::description ::enumValues]))))
+
+(s/def ::ofType ::type)
+
+(s/def ::defaultValue (s/nilable string?))
+
+(s/def ::inputValue (s/keys :req-un [::name ::description ::type ::defaultValue]))
+
+(s/def ::enumValues (s/+ string?))
+
+(s/def ::args (s/* ::inputValue))
+
+(s/def ::isDeprecated boolean?)
+
+(s/def ::deprecationReason (s/nilable string?))
 
 (s/def ::field-node (s/keys :req-un [::name ::description ::args ::type ::isDeprecated ::deprecationReason ::defaultValue]))
 
 (s/def ::types (s/* ::type))
+
+
+(s/def ::fields      (t/resolver #'__fields ""))
+(s/def ::inputFields (t/resolver #'__fields ""))
 
 (s/def ::queryType ::type)
 (s/def ::mutationType     (s/nilable ::type))
@@ -441,7 +478,7 @@
 
 (s/fdef __fields
         :args (s/tuple ::type map? map? map?)
-        :ret (s/nilable (s/* ::field-node)))
+        :ret (s/nilable (s/+ ::field-node)))
 
 (s/fdef __schema
         :args (s/tuple map? map? map? map?)
