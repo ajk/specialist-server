@@ -7,14 +7,14 @@
             [specialist-server.type :as t]))
 
 
-(defn valid-res [fun-var ret-spec res]
+(defn valid-res [fun-var ret-spec res info]
   (let [m (meta fun-var)
         type-name (str (get m ::t/name (:name m)))]
     (if (spec/valid? ret-spec res)
       (if (coll? res)
         (vary-meta res assoc ::type-name type-name)
         res)
-      (throw (ex-info (str "failed to validate return value for " fun-var)
+      (throw (ex-info (str "failed to validate return value for " fun-var " via " (-> info :path pr-str))
                       (select-keys (spec/explain-data ret-spec res) [::spec/problems]))))))
 
 (defn resolve-field [field & args]
@@ -26,7 +26,8 @@
                         (throw (IllegalArgumentException. (str "missing :ret in fspec for " field))))
           args-spec (or (:args fspec)
                         (throw (IllegalArgumentException. (str "missing :args in fspec for " field))))
-          c-args (spec/conform args-spec (vec args))]
+          c-args (spec/conform args-spec (vec args))
+          info (last c-args)]
 
       (if (= c-args ::spec/invalid)
         (throw (ex-info (str "failed to conform arguments for " field)
@@ -34,7 +35,7 @@
         (let [res (try
                     (apply (deref field) c-args)
                     (catch Exception e
-                      (log/error "Exception in" field  "via" (-> c-args last :path pr-str))
+                      (log/error "Exception in" field  "via" (-> info :path pr-str))
                       (log/error (.toString e))
                       (throw e)))]
           (if (fn? res)
@@ -43,10 +44,11 @@
               (valid-res field ret-spec (try
                                           (res)
                                           (catch Exception e
-                                            (log/error "Exception in" field  "via" (-> c-args last :path pr-str))
+                                            (log/error "Exception in" field  "via" (-> info :path pr-str))
                                             (log/error (.toString e))
-                                            (throw e)))))
-            (valid-res field ret-spec res)))))))
+                                            (throw e)))
+                         info))
+            (valid-res field ret-spec res info)))))))
 
 (defn field-args [arg-map vars]
   (reduce-kv
