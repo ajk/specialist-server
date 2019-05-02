@@ -151,8 +151,13 @@
       (type (assoc spec-meta :type-kw v))
       (some-> spec s/form type))))
 
+
 (defmethod type :sym [v]
-  (-> v resolve meta type))
+  (let [v-res (resolve v)
+        v-meta (meta v-res)]
+    (cond
+      (= (::t/kind v-meta) t/enum-kind) (type (eval v)) ;; Get enum set value
+      :else (type v-meta))))
 
 (defmethod type :set [v]
   (let [m (meta v)]

@@ -31,7 +31,7 @@
 
 (s/def ::f-enum (t/field #{"A" "B" "C"} "My ABCs"))
 
-(s/def ::f-enum-2 (t/field my-enum "My numbers"))
+(s/def ::f-enum-2 (t/field (s/nilable my-enum) "My numbers"))
 
 (s/def ::t-float t/float)
 (s/def ::f-float (t/field (s/nilable ::t-float) "Field of type Float"))
@@ -83,6 +83,8 @@
 
 #_(pprint (i/field #'m-resolver))
 
+#_(-> my-enum i/type :ofType :kind)
+
 ;;;
 
 (deftest introspection-test
@@ -120,8 +122,8 @@
     (is (= t/enum-kind (-> ::f-enum i/field :type :ofType :kind)))
     (is (= '(::i ::j ::f-int ::missing) (-> #'m-resolver i/type :ofType :ofType :fields)))
 
-    (is (= t/enum-kind (-> ::f-enum-2 i/field :type :ofType :kind)))
-    (is (= "my_enum" (-> ::f-enum-2 i/field :type :ofType :name)))
+    (is (= t/enum-kind (-> ::f-enum-2 i/field :type :kind)))
+    (is (= "my_enum" (-> ::f-enum-2 i/field :type :name)))
 
     (is (= "missing" (-> ::missing i/field :name)))
     (is (= "String"  (-> ::missing i/field :type :name))))
