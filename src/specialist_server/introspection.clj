@@ -84,12 +84,36 @@
 
 ;TODO Do we need to support more than spec/tuple?
 ;     Also, make opt-un keys nilable.
-(defn arg-keys [v]
-  (when (var? v)
-    (let [v-args (some-> v s/get-spec s/form rest even->map :args)
-          a (if (keyword? v-args) (get-spec v-args) v-args)]
-      (if (and (seq? a) (= 'clojure.spec.alpha/tuple (first a)))
-        (->> a rest second ret-keys)))))
+
+(defmulti arg-keys (fn [v]
+                     (cond
+                       (var? v)     :var
+                       (keyword? v) :kw
+                       (seq? v)     :keys
+                       :else :default)))
+
+(defmethod arg-keys :var [v]
+  (arg-keys (-> v get-spec rest even->map :args)))
+
+(defmethod arg-keys :kw [v]
+  (let [spec (s/get-spec v)
+        spec-meta (meta spec)]
+    (if (::t/var spec-meta)
+      (arg-keys (::t/var spec-meta))
+      (some-> spec s/form arg-keys))))
+
+(defmethod arg-keys :keys [v]
+  (cond
+    (= 'clojure.spec.alpha/tuple (first v))
+    (-> v rest second arg-keys)
+
+    (= 'clojure.spec.alpha/keys (first v))
+    (apply concat (-> v rest even->map (select-keys [:req-un :opt-un]) vals))
+
+    :else (arg-keys (second v))))
+
+(defmethod arg-keys :default [v] nil)
+
 
 (defn args [v]
   (let [a-keys (arg-keys v)
@@ -378,13 +402,16 @@
 
 ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ;
 
+(declare with-field-resolver)
+
 (defn- field-node [field-list all?]
   (let [out-list (map (fn [v]
-                        (assoc (if (vector? v)
-                                 ;; If we are looping over a map, use key as field name
-                                 (-> v last field (assoc :name (-> v first name)))
-                                 (field v))
-                               :defaultValue nil)) ;TODO support default values on inputValues
+                        (-> (if (vector? v)
+                              ;; If we are looping over a map, use key as field name
+                              (-> v last field (assoc :name (-> v first name)))
+                              (field v))
+                            (assoc :defaultValue nil) ;TODO support default values on inputValues
+                            (update :type with-field-resolver)))
                       field-list)]
     (if all?
       out-list
@@ -404,14 +431,18 @@
   [_ _ _ _]
   nil)
 
-
 (defn- with-field-resolver
   "Adds field resolver ref to type map v"
   [v]
-  (if (= t/input-object-kind (:kind v))
-    (assoc v :inputFields #'__fields :fields nil)
-    (assoc v :fields      #'__fields :inputFields nil)))
+  (cond
+    (or (= t/non-null-kind (:kind v)) (= t/list-kind (:kind v)))
+    (update v :ofType with-field-resolver)
 
+    (= t/input-object-kind (:kind v))
+    (assoc v :inputFields #'__fields :fields nil)
+
+    :else
+    (assoc v :fields #'__fields :inputFields nil)))
 
 (defn __schema
   "A GraphQL Schema defines the capabilities of a GraphQL server. It exposes
@@ -460,15 +491,19 @@
 
 (s/def ::inputValue (s/keys :req-un [::name ::description ::type ::defaultValue]))
 
-(s/def ::enumValues (s/+ string?))
-
-(s/def ::args (s/* ::inputValue))
-
 (s/def ::isDeprecated boolean?)
 
 (s/def ::deprecationReason (s/nilable string?))
 
-(s/def ::field-node (s/keys :req-un [::name ::description ::args ::type ::isDeprecated ::deprecationReason ::defaultValue]))
+(s/def ::enumValue (s/keys :req-un [::name ::description ::isDeprecated ::deprecationReason]))
+
+(s/def ::enumValues (s/nilable (s/+ ::enumValue)))
+
+(s/def ::args (s/* ::inputValue))
+
+
+(s/def ::field-node (s/or :field (s/keys :req-un [::name ::description ::type ::isDeprecated ::deprecationReason ::defaultValue])
+                          :input ::inputValue))
 
 (s/def ::types (s/* ::type))
 
