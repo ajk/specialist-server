@@ -5,7 +5,7 @@
 - Added type/defobject macro
 - Improved logging and error handling
 - Improved object and list type introspection
-- Use Clojure 1.10.0
+- Use Clojure 1.10.1
 
 ## [0.5.0] - 2018-07-31
 
