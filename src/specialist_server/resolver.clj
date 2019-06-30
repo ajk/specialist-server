@@ -80,10 +80,10 @@
           (when (and (empty? children) (or (map? v) (and (coll? v) (-> v first map?))))
             (throw (ex-info
                      (str "invalid query on " type-name ": "
-                          "the resolver returned a map or list but a scalar value was queried.")
+                          "the resolver returned a map but fields are missing from query.")
                      {:path k})))
           (cond
-            (not (coll? v))
+            (or (not (coll? v)) (empty? children))
             (recur
               (assoc-in out k v)
               (inc idx)
