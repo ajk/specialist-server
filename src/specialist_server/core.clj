@@ -56,6 +56,7 @@
                               (assoc-in [:query :__type]   #'i/__type))
                   :type-map type-map
                   :variable-values (reduce-kv (fn [m k v] (assoc m (keyword k) v )) {} variables)
+                  :validate-output? (get context :validate-output? true)
                   :root-value (or root {})}]
         (execute (or query preparsed) queryName (or context {}) info)))))
 

@@ -10,7 +10,7 @@
 (defn valid-res [fun-var ret-spec res info]
   (let [m (meta fun-var)
         type-name (str (get m ::t/name (:name m)))]
-    (if (spec/valid? ret-spec res)
+    (if (or (not (:validate-output? info)) (spec/valid? ret-spec res))
       (if (coll? res)
         (vary-meta res assoc ::type-name type-name)
         res)
