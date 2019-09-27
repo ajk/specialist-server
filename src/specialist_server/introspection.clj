@@ -358,7 +358,12 @@
                    (-> v-type :fields)
                    (-> v-type :ofType :fields)
                    (-> v-type :ofType :ofType :fields)
-                   '())]
+                   '())
+        v-input-fields (or
+                         (-> v-type :inputFields)
+                         (-> v-type :ofType :inputFields)
+                         (-> v-type :ofType :ofType :inputFields)
+                         '())]
     (log/trace "-> got type:" v-type)
     (cond
       (nil? v-type) coll
@@ -366,7 +371,7 @@
       :else
       (reduce field->types
               (assoc coll (:name v-type) v-type)
-              (set (concat v-fields (arg-keys v) (ret-keys v)))))))
+              (set (concat v-input-fields v-fields (arg-keys v) (ret-keys v)))))))
 
 (defn type-map [schema]
   (assoc (->> schema

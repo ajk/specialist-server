@@ -22,6 +22,8 @@
 
 (t/defenum my-enum "new enum type" #{"ONE" "TWO" "THREE"})
 
+(t/defenum my-other-enum "other enum type" #{"FOUR" "FIVE" "SIX"})
+
 (s/def ::t-string t/string)
 (s/def ::n-bool (s/nilable t/boolean))
 (s/def ::c-string (s/nilable (s/* ::t-string)))
@@ -33,6 +35,8 @@
 
 (s/def ::f-enum-2 (t/field (s/nilable my-enum) "My numbers"))
 
+(s/def ::f-enum-3 (t/field (s/nilable my-other-enum) "More numbers"))
+
 (s/def ::t-float t/float)
 (s/def ::f-float (t/field (s/nilable ::t-float) "Field of type Float"))
 
@@ -43,9 +47,9 @@
 (s/def ::i (t/resolver #'i-resolver))
 (s/def ::j (t/resolver #'j-resolver))
 
-(t/defobject InputOne {:kind t/input-object-kind :description "Example input object"} :req-un [::t-string])
+(t/defobject InputOne {:kind t/input-object-kind :description "Example input object"} :req-un [::t-string ::f-enum-3])
 
-(s/def ::input-obj (t/field InputOne ""))
+(s/def ::input-obj (t/field (s/nilable InputOne) ""))
 
 (s/fdef i-resolver
         :args (s/tuple map? (s/keys :req-un [::f-nil-int ::t-undef] :opt-un [::f-enum]) map? map?)
@@ -130,8 +134,10 @@
 
   (testing "input-object"
     (let [t-map (i/type-map {:query {:m #'m-resolver}})
-          inp-type (-> #'m-resolver i/field :args first :type :ofType)]
+          inp-type (-> #'m-resolver i/field :args first :type)
+          field-types (->> inp-type :inputFields (map i/type) (map #(or (:name %) (-> % :ofType :name))))]
       (is (contains? t-map (:name inp-type)))
+      (is (every? #(contains? t-map %) field-types))
       (is (= t/input-object-kind (:kind inp-type)))))
 
   )
