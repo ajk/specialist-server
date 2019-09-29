@@ -1,9 +1,6 @@
 (ns specialist-server.resolver
   (:require [clojure.tools.logging :as log]
-            [clojure.java.io :as io]
             [clojure.spec.alpha :as spec]
-            [clojure.string :as string]
-            [clojure.pprint :refer [pprint]]
             [specialist-server.type :as t]))
 
 

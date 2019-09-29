@@ -1,11 +1,8 @@
 (ns specialist-server.parser
   (:require [clojure.java.io :as io]
-            [clojure.spec.alpha :as spec]
             [clojure.string :as string]
             [clj-antlr.core :as antlr]
-            [clojure.pprint :refer [pprint]]
-            [clojure.walk :as walk]
-            [specialist-server.type :as t]))
+            [clojure.walk :as walk]))
 
 
 (def graphql (antlr/parser (slurp (io/resource "grammar/GraphQL.g4"))))
@@ -196,7 +193,7 @@
     ;; Single-pass parsing is a bit faster so let's try it first.
     ;; This is all we need most of the time.
     (->> q-str graphql (walk/postwalk apply-ops))
-    (catch clj_antlr.ParseError ex
+    (catch clj_antlr.ParseError _
       (try
         ;; Whoops, that didn't work.
         ;; Try to parse in two passes in order to work around reserved words in bad places.

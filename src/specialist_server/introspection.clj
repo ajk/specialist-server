@@ -3,7 +3,6 @@
   (:require [clojure.tools.logging :as log]
             [clojure.spec.alpha :as s]
             [clojure.string :as string]
-            [clojure.walk :as walk]
             [specialist-server.type :as t]))
 
 ;TODO
@@ -78,7 +77,7 @@
       (apply concat (-> v rest even->map (select-keys [:req-un :opt-un]) vals))
       (ret-keys (second v)))))
 
-(defmethod ret-keys :default [v] nil)
+(defmethod ret-keys :default [_] nil)
 
 ;;;
 
@@ -112,7 +111,7 @@
 
     :else (arg-keys (second v))))
 
-(defmethod arg-keys :default [v] nil)
+(defmethod arg-keys :default [_] nil)
 
 
 (defn args [v]
@@ -268,8 +267,7 @@
         (assoc :description (get v ::t/type-description (:doc v)))
         non-null)))
 
-(defmethod type :default [v]
-  nil)
+(defmethod type :default [_] nil)
 
 ;;;
 
@@ -337,8 +335,7 @@
      :isDeprecated (boolean (::t/is-deprecated m))
      :deprecationReason (::t/deprecation-reason m)}))
 
-(defmethod field :default [v]
-  nil)
+(defmethod field :default [_] nil)
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
