@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- Updated clj-antlr
+
 ## [0.6.0] - 2019-09-29
 
 - Added type/defobject macro
