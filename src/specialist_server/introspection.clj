@@ -348,8 +348,8 @@
   (log/trace "field->types: inspecting argument" v)
   (let [v-type (loop [v-t (type v)]
                  (cond
-                   (nil? v-t)  nil
-                   (:name v-t) v-t
+                   (nil? v-t) nil
+                   (:name v-t) (assoc v-t :v v)
                    :else (recur (:ofType v-t))))
         v-fields (or
                    (-> v-type :fields)
@@ -362,13 +362,13 @@
                          (-> v-type :ofType :ofType :inputFields)
                          '())]
     (log/trace "-> got type:" v-type)
-    (cond
-      (nil? v-type) coll
-      (contains? coll (:name v-type)) coll
-      :else
+    (if (nil? v-type)
+      coll
       (reduce field->types
               (assoc coll (:name v-type) v-type)
-              (set (concat v-input-fields v-fields (arg-keys v) (ret-keys v)))))))
+              (let [processed (map :v (vals coll))]
+                   (->> (set (concat v-input-fields v-fields (arg-keys v) (ret-keys v)))
+                        (remove (fn [v] (some #{v} processed)))))))))
 
 (defn type-map [schema]
   (assoc (->> schema
