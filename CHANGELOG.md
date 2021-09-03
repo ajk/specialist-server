@@ -2,7 +2,8 @@
 
 ## [Unreleased]
 
-- Updated clj-antlr
+- Updated dependencies
+- Type introspection fix (thanks to Johannes Lötzsch)
 
 ## [0.6.0] - 2019-09-29
 
