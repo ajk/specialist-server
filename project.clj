@@ -4,8 +4,8 @@
   :license {:name "Eclipse Public License"
             :url "http://www.eclipse.org/legal/epl-v10.html"}
   :dependencies [[org.clojure/clojure "1.10.3"]
-                 [org.clojure/tools.logging "1.1.0"]
-                 [clj-antlr "0.2.9"]]
+                 [org.clojure/tools.logging "1.2.3"]
+                 [clj-antlr "0.2.10"]]
 
   :min-lein-version "2.9.1"
   :pedantic :abort)
