@@ -1,6 +1,6 @@
 # Change Log
 
-## [Unreleased]
+## [0.7.0] - 2021-12-27
 
 - Updated dependencies
 - Type introspection fix (thanks to Johannes Lötzsch)
@@ -46,6 +46,7 @@
 
 - Initial release
 
+[0.7.0]: https://github.com/ajk/specialist-server/compare/0.6.0...0.7.0
 [0.6.0]: https://github.com/ajk/specialist-server/compare/0.5.0...0.6.0
 [0.5.0]: https://github.com/ajk/specialist-server/compare/0.4.0...0.5.0
 [0.4.0]: https://github.com/ajk/specialist-server/compare/0.3.0...0.4.0
