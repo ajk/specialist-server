@@ -90,11 +90,14 @@
    (str "The 'String' scalar type represents textual data, represented as UTF-8 "
         "character sequences. The String type is most often used by GraphQL to "
         "represent free-form human-readable text.")}
-  (fn [v]
-    (cond
-      (nil? v)  ::s/invalid
-      (coll? v) ::s/invalid
-      :else (str v))))
+  (s/with-gen
+    (s/conformer
+      (fn [v]
+        (cond
+          (nil? v)  ::s/invalid
+          (coll? v) ::s/invalid
+          :else (str v))))
+    #(s/gen string?)))
 
 (defscalar
   int
@@ -102,10 +105,13 @@
    :description
    (str "The 'Int' scalar type represents non-fractional signed whole numeric values. "
         "Int can represent values between -(2^31) and 2^31 - 1.")}
-  (fn [v]
-    (if (clojure.core/int? v)
-      v
-      (try (Integer. ^String v) (catch Exception _ ::s/invalid)))))
+  (s/with-gen
+    (s/conformer
+      (fn [v]
+        (if (clojure.core/int? v)
+          v
+          (try (Integer. ^String v) (catch Exception _ ::s/invalid)))))
+    #(s/gen int?)))
 
 (defscalar
   long
@@ -113,10 +119,13 @@
    :description
    (str "The 'Long' scalar type represents non-fractional signed whole numeric "
         "values. Long can represent values between -(2^64) and 2^64 - 1.")}
-  (fn [v]
-    (if (clojure.core/integer? v)
-      v
-      (try (Long. ^String v) (catch Exception _ ::s/invalid)))))
+  (s/with-gen
+    (s/conformer
+      (fn [v]
+        (if (clojure.core/integer? v)
+          v
+          (try (Long. ^String v) (catch Exception _ ::s/invalid)))))
+    #(s/gen int?)))
 
 (defscalar
   float
@@ -124,23 +133,29 @@
    :description
    (str "The 'Float' scalar type represents signed double-precision fractional values "
         "as specified by IEEE 754")}
-  (fn [v]
-    (if (clojure.core/float? v)
-      v
-      (try (Double. ^String v) (catch Exception _ ::s/invalid)))))
+  (s/with-gen
+    (s/conformer
+      (fn [v]
+        (if (clojure.core/float? v)
+          v
+          (try (Double. ^String v) (catch Exception _ ::s/invalid)))))
+    #(s/gen float?)))
 
 (defscalar
   boolean
   {:name "Boolean"
    :description "The 'Boolean' scalar type represents 'true' or 'false'."}
-  (fn [v]
-    (cond
-      (and (boolean? v) (= true v))  true
-      (and (boolean? v) (= false v)) false
-      (string/blank? v) ::s/invalid
-      (and (clojure.core/string? v) (re-find #"(?i)^true$" v)) true
-      (and (clojure.core/string? v) (re-find #"(?i)^false$" v)) false
-      :else ::s/invalid)))
+  (s/with-gen
+    (s/conformer
+      (fn [v]
+        (cond
+          (and (boolean? v) (= true v))  true
+          (and (boolean? v) (= false v)) false
+          (string/blank? v) ::s/invalid
+          (and (clojure.core/string? v) (re-find #"(?i)^true$" v)) true
+          (and (clojure.core/string? v) (re-find #"(?i)^false$" v)) false
+          :else ::s/invalid)))
+    #(s/gen boolean?)))
 
 (defscalar
   id
@@ -151,11 +166,14 @@
         "String; however, it is not intended to be human-readable. When expected as an "
         "input type, any string (such as \"4\") or integer (such as 4) input value "
         "will be accepted as an ID.")}
-  (fn [v]
-    (cond
-      (string/blank? v) ::s/invalid
-      (coll? v) ::s/invalid
-      :else (str v))))
+  (s/with-gen
+    (s/conformer
+      (fn [v]
+        (cond
+          (string/blank? v) ::s/invalid
+          (coll? v) ::s/invalid
+          :else (str v))))
+    #(s/gen string?)))
 
 (defn resolver
   "The 'resolver' scalar type represents references to other resolver functions.
