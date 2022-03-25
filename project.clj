@@ -6,6 +6,7 @@
   :dependencies [[org.clojure/clojure "1.10.3"]
                  [org.clojure/tools.logging "1.2.3"]
                  [clj-antlr "0.2.10"]]
+  :profiles {:test {:dependencies [[org.clojure/test.check "0.9.0"]]}}
 
   :min-lein-version "2.9.1"
   :pedantic :abort)
